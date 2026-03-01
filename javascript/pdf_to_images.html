@@ -1,0 +1,83 @@
+<!--
+  名称: PDF to Images (Browser)
+  用途: 纯前端 PDF 页面渲染为 JPEG 图片，零后端依赖
+  依赖: PDF.js v2.9.359 (CDN)
+  适用场景: 浏览器端 PDF 预览、PDF 转图片管线的前端部分
+  来源: https://simonwillison.net/guides/agentic-engineering-patterns/hoard-things-you-know-how-to-do/
+  日期: 2026-03-01
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<title>PDF to Images</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
+<style>
+.image-container img {
+  margin-bottom: 10px;
+}
+.image-container p {
+  margin: 0;
+  font-size: 14px;
+  color: #888;
+}
+</style>
+</head>
+<body>
+<input type="file" id="fileInput" accept=".pdf" />
+<div class="image-container"></div>
+<script>
+const desiredWidth = 800;
+const fileInput = document.getElementById('fileInput');
+const imageContainer = document.querySelector('.image-container');
+fileInput.addEventListener('change', handleFileUpload);
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js';
+
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  const imageIterator = convertPDFToImages(file);
+  for await (const { imageURL, size } of imageIterator) {
+    const imgElement = document.createElement('img');
+    imgElement.src = imageURL;
+    imageContainer.appendChild(imgElement);
+    const sizeElement = document.createElement('p');
+    sizeElement.textContent = `Size: ${formatSize(size)}`;
+    imageContainer.appendChild(sizeElement);
+  }
+}
+
+async function* convertPDFToImages(file) {
+  try {
+    const pdf = await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
+    const numPages = pdf.numPages;
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 1 });
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = desiredWidth;
+      canvas.height = (desiredWidth / viewport.width) * viewport.height;
+      const renderContext = {
+        canvasContext: context,
+        viewport: page.getViewport({ scale: desiredWidth / viewport.width }),
+      };
+      await page.render(renderContext).promise;
+      const imageURL = canvas.toDataURL('image/jpeg', 0.8);
+      const size = calculateSize(imageURL);
+      yield { imageURL, size };
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+}
+
+function calculateSize(imageURL) {
+  const base64Length = imageURL.length - 'data:image/jpeg;base64,'.length;
+  return Math.ceil(base64Length * 0.75);
+}
+
+function formatSize(size) {
+  return `${(size / 1024).toFixed(2)} KB`;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!--
+  名称: PDF OCR Tool
+  用途: 浏览器端完整 PDF OCR——PDF 渲染为图片 + Tesseract OCR 提取文字
+  依赖: PDF.js v2.9.359 + Tesseract.js v2.1.0 (CDN)
+  适用场景: 扫描版 PDF 文字提取、离线 PDF OCR、无服务器文档处理
+  来源: https://tools.simonwillison.net/ocr
+  日期: 2026-03-01
+
+  组合了 javascript/pdf_to_images.html 和 javascript/browser_ocr.html
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<title>PDF OCR Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
+<script src="https://unpkg.com/tesseract.js@v2.1.0/dist/tesseract.min.js"></script>
+<style>
+body { font-family: sans-serif; max-width: 900px; margin: 2em auto; padding: 0 1em; }
+h1 { margin-bottom: 0.3em; }
+.subtitle { color: #666; margin-bottom: 1.5em; }
+#controls { margin: 1em 0; display: flex; gap: 1em; align-items: center; }
+#progress { width: 100%; height: 6px; appearance: none; }
+#progress::-webkit-progress-bar { background: #eee; border-radius: 3px; }
+#progress::-webkit-progress-value { background: #4a90d9; border-radius: 3px; }
+#status { color: #888; margin: 0.5em 0; min-height: 1.2em; }
+.page-result { margin: 1.5em 0; border: 1px solid #ddd; border-radius: 6px; overflow: hidden; }
+.page-result summary { padding: 0.8em 1em; background: #f8f8f8; cursor: pointer; font-weight: 600; }
+.page-result .content { display: flex; gap: 1em; padding: 1em; }
+.page-result img { max-width: 300px; flex-shrink: 0; border: 1px solid #eee; }
+.page-result textarea { flex: 1; min-height: 200px; font-family: monospace; font-size: 13px; border: 1px solid #ddd; padding: 0.5em; }
+#allText { width: 100%; min-height: 300px; font-family: monospace; font-size: 13px; margin-top: 1em; }
+</style>
+</head>
+<body>
+<h1>PDF OCR Tool</h1>
+<p class="subtitle">纯浏览器端：PDF 渲染 → OCR 识别，不上传任何数据到服务器。</p>
+
+<div id="controls">
+  <input type="file" id="fileInput" accept=".pdf" />
+  <label>语言:
+    <select id="lang">
+      <option value="eng" selected>English</option>
+      <option value="chi_sim">简体中文</option>
+      <option value="eng+chi_sim">中英混合</option>
+    </select>
+  </label>
+</div>
+
+<progress id="progress" value="0" max="100" style="display:none;"></progress>
+<div id="status"></div>
+<div id="pages"></div>
+
+<h2 id="allTextLabel" style="display:none;">全部文字</h2>
+<textarea id="allText" style="display:none;" placeholder="所有页面的 OCR 结果..."></textarea>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.worker.min.js';
+
+const DESIRED_WIDTH = 800;
+const fileInput = document.getElementById('fileInput');
+const langSelect = document.getElementById('lang');
+const progressBar = document.getElementById('progress');
+const statusDiv = document.getElementById('status');
+const pagesDiv = document.getElementById('pages');
+const allTextArea = document.getElementById('allText');
+const allTextLabel = document.getElementById('allTextLabel');
+
+fileInput.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  pagesDiv.innerHTML = '';
+  allTextArea.value = '';
+  progressBar.style.display = 'block';
+  progressBar.value = 0;
+
+  // Step 1: Render PDF pages to images
+  statusDiv.textContent = '正在渲染 PDF 页面...';
+  const pageImages = [];
+  const pdf = await pdfjsLib.getDocument(URL.createObjectURL(file)).promise;
+  const numPages = pdf.numPages;
+
+  for (let i = 1; i <= numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1 });
+    const canvas = document.createElement('canvas');
+    canvas.width = DESIRED_WIDTH;
+    canvas.height = (DESIRED_WIDTH / viewport.width) * viewport.height;
+    await page.render({
+      canvasContext: canvas.getContext('2d'),
+      viewport: page.getViewport({ scale: DESIRED_WIDTH / viewport.width }),
+    }).promise;
+    pageImages.push(canvas.toDataURL('image/jpeg', 0.8));
+    progressBar.value = (i / numPages) * 30;
+  }
+
+  // Step 2: OCR each page
+  const language = langSelect.value;
+  statusDiv.textContent = `正在加载 OCR 引擎 (${language})...`;
+  const worker = Tesseract.createWorker();
+  await worker.load();
+  await worker.loadLanguage(language);
+  await worker.initialize(language);
+
+  const allTexts = [];
+
+  for (let i = 0; i < pageImages.length; i++) {
+    statusDiv.textContent = `正在 OCR 第 ${i + 1}/${numPages} 页...`;
+    const { data: { text } } = await worker.recognize(pageImages[i]);
+    allTexts.push(text);
+
+    // Render per-page result
+    const details = document.createElement('details');
+    details.className = 'page-result';
+    details.open = i === 0;
+    details.innerHTML = `
+      <summary>第 ${i + 1} 页</summary>
+      <div class="content">
+        <img src="${pageImages[i]}" alt="Page ${i + 1}" />
+        <textarea readonly>${text}</textarea>
+      </div>
+    `;
+    pagesDiv.appendChild(details);
+    progressBar.value = 30 + ((i + 1) / numPages) * 70;
+  }
+
+  await worker.terminate();
+
+  // Show combined result
+  allTextLabel.style.display = 'block';
+  allTextArea.style.display = 'block';
+  allTextArea.value = allTexts.map((t, i) => `── 第 ${i + 1} 页 ──\n${t}`).join('\n\n');
+  statusDiv.textContent = `完成！共 ${numPages} 页`;
+});
+</script>
+</body>
+</html>

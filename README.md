@@ -21,6 +21,9 @@
 | `python/snippet_manager.py` | CLI snippet manager with natural-language search; combines snippets into LLM prompts | `anthropic`, `rich` |
 | `python/tape_context.py` | Anchor-based context assembly for multi-turn conversations (replaces history inheritance) | stdlib only |
 | `python/zvec_inprocess_vector.py` | In-process vector DB demo — hybrid search (semantic + structured filtering) with zero services | `zvec`, `sentence-transformers` |
+| `javascript/pdf_to_images.html` | Pure frontend PDF page renderer — converts each page to JPEG via PDF.js | PDF.js (CDN) |
+| `javascript/browser_ocr.html` | Pure frontend OCR — Tesseract WebAssembly, supports English + Chinese | Tesseract.js (CDN) |
+| `html-tools/pdf_ocr.html` | Complete browser-based PDF OCR tool — PDF rendering + text extraction, zero backend | PDF.js + Tesseract.js (CDN) |
 
 ### Project Structure
 
@@ -28,6 +31,7 @@
 CodeSnippets/
 ├── python/          # Python snippets
 ├── javascript/      # JavaScript / Node.js snippets
+├── html-tools/      # Standalone single-page HTML tools
 ├── shell/           # Shell scripts & CLI tricks
 ├── snippets/        # Cross-language / general snippets
 ├── ideas/           # Raw project ideas (markdown)
@@ -74,6 +78,9 @@ Each snippet is a standalone file. The header comment block describes:
 | `python/snippet_manager.py` | CLI 片段管理器，支持自然语言搜索，可组合片段生成 LLM prompt | `anthropic`, `rich` |
 | `python/tape_context.py` | 基于锚点的上下文装配，替代历史继承，适合群聊/多任务 Agent | 标准库 |
 | `python/zvec_inprocess_vector.py` | in-process 向量库演示——混合检索（语义+结构化过滤），零服务依赖 | `zvec`, `sentence-transformers` |
+| `javascript/pdf_to_images.html` | 纯前端 PDF 页面渲染——通过 PDF.js 将每页转为 JPEG | PDF.js (CDN) |
+| `javascript/browser_ocr.html` | 纯前端 OCR——Tesseract WebAssembly，支持中英文 | Tesseract.js (CDN) |
+| `html-tools/pdf_ocr.html` | 完整的浏览器端 PDF OCR 工具——PDF 渲染 + 文字提取，零后端 | PDF.js + Tesseract.js (CDN) |
 
 ### 项目结构
 
@@ -81,6 +88,7 @@ Each snippet is a standalone file. The header comment block describes:
 CodeSnippets/
 ├── python/          # Python 相关片段
 ├── javascript/      # JavaScript / Node.js 相关片段
+├── html-tools/      # 独立单页 HTML 工具
 ├── shell/           # Shell 脚本与命令行技巧
 ├── snippets/        # 通用 / 跨语言片段
 ├── ideas/           # 项目灵感与构思
