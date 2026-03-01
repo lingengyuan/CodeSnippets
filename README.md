@@ -24,6 +24,8 @@
 | `javascript/pdf_to_images.html` | Pure frontend PDF page renderer — converts each page to JPEG via PDF.js | PDF.js (CDN) |
 | `javascript/browser_ocr.html` | Pure frontend OCR — Tesseract WebAssembly, supports English + Chinese | Tesseract.js (CDN) |
 | `html-tools/pdf_ocr.html` | Complete browser-based PDF OCR tool — PDF rendering + text extraction, zero backend | PDF.js + Tesseract.js (CDN) |
+| `python/fts5_fuzzy_search.py` | SQLite FTS5 three-layer fuzzy search: Porter stemming → trigram substring → Levenshtein correction | stdlib (sqlite3) |
+| `python/sandbox_execute.py` | Isolated subprocess execution — only stdout enters context, with budget control | stdlib (subprocess) |
 
 ### Project Structure
 
@@ -81,6 +83,8 @@ Each snippet is a standalone file. The header comment block describes:
 | `javascript/pdf_to_images.html` | 纯前端 PDF 页面渲染——通过 PDF.js 将每页转为 JPEG | PDF.js (CDN) |
 | `javascript/browser_ocr.html` | 纯前端 OCR——Tesseract WebAssembly，支持中英文 | Tesseract.js (CDN) |
 | `html-tools/pdf_ocr.html` | 完整的浏览器端 PDF OCR 工具——PDF 渲染 + 文字提取，零后端 | PDF.js + Tesseract.js (CDN) |
+| `python/fts5_fuzzy_search.py` | SQLite FTS5 三层模糊搜索：Porter 词干 → trigram 子串 → Levenshtein 纠错 | 标准库 (sqlite3) |
+| `python/sandbox_execute.py` | 隔离子进程执行——只有 stdout 进入 context，带 budget 控制 | 标准库 (subprocess) |
 
 ### 项目结构
 
