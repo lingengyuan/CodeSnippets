@@ -27,6 +27,8 @@
 | `python/fts5_fuzzy_search.py` | SQLite FTS5 three-layer fuzzy search: Porter stemming → trigram substring → Levenshtein correction | stdlib (sqlite3) |
 | `python/sandbox_execute.py` | Isolated subprocess execution — only stdout enters context, with budget control | stdlib (subprocess) |
 | `analysis/simon-willison-agentic-patterns.md` | Deep-read of 7 agentic engineering patterns by Simon Willison: TDD, WASM tooling, cognitive debt, walkthroughs, and more | — |
+| `snippets/kway-merge-heap.rs` | K-way external merge sort using BinaryHeap as min-heap; groups identical keys (MapReduce Reduce phase pattern) | stdlib only (Rust) |
+| `snippets/atomic-file-write.rs` | Atomic file write via tmp → rename; prevents partial-write corruption under crashes or concurrency | stdlib only (Rust) |
 
 ### Project Structure
 
@@ -87,6 +89,8 @@ Each snippet is a standalone file. The header comment block describes:
 | `python/fts5_fuzzy_search.py` | SQLite FTS5 三层模糊搜索：Porter 词干 → trigram 子串 → Levenshtein 纠错 | 标准库 (sqlite3) |
 | `python/sandbox_execute.py` | 隔离子进程执行——只有 stdout 进入 context，带 budget 控制 | 标准库 (subprocess) |
 | `analysis/simon-willison-agentic-patterns.md` | Simon Willison 7 个 Agentic Engineering 模式精读：TDD、WASM 封装、认知债务、代码导读、交互式解释等 | — |
+| `snippets/kway-merge-heap.rs` | K-way 外部归并排序（BinaryHeap 变 min-heap）+ 相同 key 自动聚合，MapReduce Reduce 阶段模式 | 标准库 (Rust) |
+| `snippets/atomic-file-write.rs` | 原子文件写入：先写 tmp 再 rename，防止崩溃或并发导致脏文件 | 标准库 (Rust) |
 
 ### 项目结构
 
