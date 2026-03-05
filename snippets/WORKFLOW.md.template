@@ -1,0 +1,70 @@
+# WORKFLOW.md 模板
+# 配合 python/mini_symphony.py 使用
+# 来源: https://github.com/openai/symphony (SPEC 精简实现)
+# 日期: 2026-03-05
+#
+# 用法：
+#   将此文件复制为你项目目录下的 WORKFLOW.md，按需修改
+#   python mini_symphony.py --dry-run    # 先预览 prompt
+#   python mini_symphony.py --once       # 跑一轮
+#   python mini_symphony.py              # 持续轮询
+
+---
+agent:
+  command: "pi --print"      # 替换为 "claude -p" / "codex" 等
+  turn_timeout: 3600         # 单次执行超时（秒）
+  max_retries: 3             # 最大重试次数
+  max_retry_backoff: 300     # 失败重试最大等待（秒）
+
+workspace:
+  root: "~/.mini-symphony/workspaces"   # per-task 隔离目录根
+
+hooks:
+  # after_create: 首次创建 workspace 时运行（仅一次）
+  # 失败 → 跳过整个任务
+  after_create: |
+    echo "workspace created at $WORKSPACE_PATH"
+    # git clone https://github.com/yourorg/yourrepo.git .
+
+  # before_run: 每次 attempt 前运行
+  # 失败 → 中止本次 attempt，进入重试
+  before_run: |
+    echo "before run"
+    # git -C $PROJECT_ROOT pull --ff-only || true
+
+  # after_run: 每次 attempt 后运行（无论成败）
+  # 失败 → 仅记录日志，不影响结果
+  after_run: |
+    echo "after run"
+    # git -C $WORKSPACE_PATH diff --stat || true
+
+tasks:
+  source: "./TASKS.md"    # 任务列表文件路径
+
+polling:
+  interval: 30            # 轮询间隔（秒），--once 时忽略
+---
+
+你是一个 coding agent，请独立完成以下任务。
+
+**任务**: {{ task.title }}
+{% if task.description %}
+
+**详细描述**:
+{{ task.description }}
+{% endif %}
+{% if attempt %}
+
+---
+**注意**: 这是第 {{ attempt }} 次重试。
+请先检查 workspace 中已有的工作，在此基础上继续，不要重头开始。
+{% endif %}
+
+---
+
+**完成标准**:
+- 所有相关代码已提交
+- 如有测试，测试通过
+- 如有需要，文档已更新
+
+开始吧。

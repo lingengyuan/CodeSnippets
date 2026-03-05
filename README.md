@@ -26,7 +26,10 @@
 | `html-tools/pdf_ocr.html` | Complete browser-based PDF OCR tool — PDF rendering + text extraction, zero backend | PDF.js + Tesseract.js (CDN) |
 | `python/fts5_fuzzy_search.py` | SQLite FTS5 three-layer fuzzy search: Porter stemming → trigram substring → Levenshtein correction | stdlib (sqlite3) |
 | `python/sandbox_execute.py` | Isolated subprocess execution — only stdout enters context, with budget control | stdlib (subprocess) |
+| `python/mini_symphony.py` | Lightweight agent orchestrator: TASKS.md task queue → per-task workspace → pi/claude subprocess → two-tier retry (continuation 1s / failure exponential backoff). Based on OpenAI Symphony SPEC patterns. | `pyyaml` |
 | `analysis/simon-willison-agentic-patterns.md` | Deep-read of 7 agentic engineering patterns by Simon Willison: TDD, WASM tooling, cognitive debt, walkthroughs, and more | — |
+| `analysis/symphony-orchestration-spec.md` | Deep-read of OpenAI Symphony SPEC: issue-tracker→agent pipeline, 5-state orchestration FSM, workspace isolation invariants, WORKFLOW.md config+prompt pattern, dual-layer concurrency control, app-server JSON-RPC protocol | — |
+| `ideas/yt-browse-local-first-channel-browser.md` | Local-first channel browser patterns: fetch-cache-search, 2-step API quota optimization, 3-layer unified search (word/regex/fuzzy), Bubble Tea Elm TUI architecture | Go |
 | `snippets/kway-merge-heap.rs` | K-way external merge sort using BinaryHeap as min-heap; groups identical keys (MapReduce Reduce phase pattern) | stdlib only (Rust) |
 | `snippets/atomic-file-write.rs` | Atomic file write via tmp → rename; prevents partial-write corruption under crashes or concurrency | stdlib only (Rust) |
 
@@ -88,7 +91,10 @@ Each snippet is a standalone file. The header comment block describes:
 | `html-tools/pdf_ocr.html` | 完整的浏览器端 PDF OCR 工具——PDF 渲染 + 文字提取，零后端 | PDF.js + Tesseract.js (CDN) |
 | `python/fts5_fuzzy_search.py` | SQLite FTS5 三层模糊搜索：Porter 词干 → trigram 子串 → Levenshtein 纠错 | 标准库 (sqlite3) |
 | `python/sandbox_execute.py` | 隔离子进程执行——只有 stdout 进入 context，带 budget 控制 | 标准库 (subprocess) |
+| `python/mini_symphony.py` | 轻量 Agent 编排器：TASKS.md 任务队列 → per-task workspace → pi/claude 子进程 → 两种重试（continuation 固定 1s / failure 指数退避）。基于 OpenAI Symphony SPEC 核心模式。 | `pyyaml` |
 | `analysis/simon-willison-agentic-patterns.md` | Simon Willison 7 个 Agentic Engineering 模式精读：TDD、WASM 封装、认知债务、代码导读、交互式解释等 | — |
+| `analysis/symphony-orchestration-spec.md` | OpenAI Symphony SPEC 精读：Issue Tracker→Agent 流水线、5 态编排状态机、Workspace 隔离三不变量、WORKFLOW.md 配置+Prompt 合一模式、双层并发控制、App-Server JSON-RPC 协议 | — |
+| `ideas/yt-browse-local-first-channel-browser.md` | 本地优先内容浏览器模式：fetch-cache-search 架构、两步 API 配额优化、三层统一搜索接口（word/regex/fuzzy）、Bubble Tea Elm TUI 架构 | Go |
 | `snippets/kway-merge-heap.rs` | K-way 外部归并排序（BinaryHeap 变 min-heap）+ 相同 key 自动聚合，MapReduce Reduce 阶段模式 | 标准库 (Rust) |
 | `snippets/atomic-file-write.rs` | 原子文件写入：先写 tmp 再 rename，防止崩溃或并发导致脏文件 | 标准库 (Rust) |
 
