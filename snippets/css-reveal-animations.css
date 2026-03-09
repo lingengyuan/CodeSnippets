@@ -1,0 +1,146 @@
+/* =============================================================================
+ * 名称: CSS Reveal Animations
+ * 用途: 可复用的页面元素入场动画集合，适用于 HTML 演示文稿和落地页
+ * 依赖: 纯 CSS，无依赖
+ * 适用场景: HTML 幻灯片、Web 落地页、单页 HTML 工具的动效增强
+ * 来源: https://github.com/zarazhangrui/frontend-slides
+ * 日期: 2026-03-06
+ * ============================================================================= */
+
+/* ── 缓动曲线变量 ─────────────────────────────────────────────── */
+:root {
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1); /* 弹性感 */
+}
+
+/* ── 入场动画基类（JS 添加 .visible 触发） ───────────────────── */
+
+/* 淡入上移 — 最通用 */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s var(--ease-out-expo),
+                transform 0.6s var(--ease-out-expo);
+}
+
+/* 缩放淡入 */
+.reveal-scale {
+    opacity: 0;
+    transform: scale(0.9);
+    transition: opacity 0.6s var(--ease-out-expo),
+                transform 0.6s var(--ease-out-expo);
+}
+
+/* 从左滑入 */
+.reveal-left {
+    opacity: 0;
+    transform: translateX(-50px);
+    transition: opacity 0.6s var(--ease-out-expo),
+                transform 0.6s var(--ease-out-expo);
+}
+
+/* 模糊淡入（柔和场景） */
+.reveal-blur {
+    opacity: 0;
+    filter: blur(10px);
+    transition: opacity 0.8s var(--ease-out-expo),
+                filter 0.8s var(--ease-out-expo);
+}
+
+/* 触发状态：添加 .visible 到父元素或自身 */
+.visible .reveal,
+.reveal.visible,
+.visible .reveal-scale,
+.reveal-scale.visible,
+.visible .reveal-left,
+.reveal-left.visible,
+.visible .reveal-blur,
+.reveal-blur.visible {
+    opacity: 1;
+    transform: none;
+    filter: none;
+}
+
+/* ── 错开延迟（列表项逐一出现） ──────────────────────────────── */
+.stagger > *:nth-child(1) { transition-delay: 0.1s; }
+.stagger > *:nth-child(2) { transition-delay: 0.2s; }
+.stagger > *:nth-child(3) { transition-delay: 0.3s; }
+.stagger > *:nth-child(4) { transition-delay: 0.4s; }
+.stagger > *:nth-child(5) { transition-delay: 0.5s; }
+.stagger > *:nth-child(6) { transition-delay: 0.6s; }
+
+/* ── 背景效果 ─────────────────────────────────────────────────── */
+
+/* 渐变网格背景 */
+.bg-grid {
+    background-image:
+        linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+/* 径向光晕（深色背景常用） */
+.bg-glow {
+    background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.3), transparent),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(236,72,153,0.15), transparent),
+        #0a0a0a;
+}
+
+/* ── 3D 悬停倾斜（卡片交互感） ───────────────────────────────── */
+.tilt-card {
+    transform-style: preserve-3d;
+    transition: transform 0.3s var(--ease-out-expo);
+}
+/* JS 配合：mousemove 计算 rotateX/rotateY，范围 ±10deg */
+
+/* ── Viewport 适配（HTML 幻灯片必备） ────────────────────────── */
+.slide {
+    height: 100vh;
+    overflow: hidden;           /* 禁止内部滚动，强制切换幻灯片 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* 响应式字号（用 clamp 替代固定 px） */
+.slide h1 { font-size: clamp(2rem,   5vw,  4rem); }
+.slide h2 { font-size: clamp(1.4rem, 3vw,  2.5rem); }
+.slide p  { font-size: clamp(0.9rem, 1.5vw, 1.2rem); }
+
+/* 图片高度上限 */
+.slide img { max-height: min(50vh, 400px); width: auto; }
+
+/* ── 负 clamp 陷阱修复 ───────────────────────────────────────── */
+/* ❌ 错误：-clamp() 前导负号被静默忽略 */
+/* ✅ 正确写法示例 */
+/* margin-top: calc(-1 * clamp(1rem, 2vw, 2rem)); */
+
+/* ── 无障碍：尊重用户动效偏好 ───────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration:   0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration:  0.01ms !important;
+    }
+}
+
+/* ── 使用示例 ─────────────────────────────────────────────────
+ *
+ * HTML:
+ *   <ul class="stagger">
+ *     <li class="reveal">Item 1</li>
+ *     <li class="reveal">Item 2</li>
+ *   </ul>
+ *
+ * JS（IntersectionObserver 触发）:
+ *   const observer = new IntersectionObserver(entries => {
+ *       entries.forEach(e => {
+ *           if (e.isIntersecting) e.target.classList.add('visible');
+ *       });
+ *   }, { threshold: 0.1 });
+ *   document.querySelectorAll('.reveal, .stagger').forEach(el => observer.observe(el));
+ *
+ * ──────────────────────────────────────────────────────────── */

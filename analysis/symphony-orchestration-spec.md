@@ -1,289 +1,205 @@
-# Symphony：OpenAI 的 Agent 编排系统规格分析
+# Symphony：OpenAI Agent 编排系统规格精读
 
-> 来源: https://github.com/openai/symphony
-> 日期: 2026-03-05
-> 语言: Elixir（参考实现），SPEC.md 语言无关
-> 标签: agent orchestration, issue tracker, state machine, workspace isolation, coding agent
-
----
-
-## 一句话
-
-Symphony 是一个 daemon，它监听 Linear 看板，把 issue 转化为隔离的 workspace，调起 Coding Agent（Codex）执行，并通过指数退避重试保证最终交付。
+**来源**: [openai/symphony SPEC.md](https://raw.githubusercontent.com/openai/symphony/refs/heads/main/SPEC.md)
+**日期**: 2026-03-08
+**标签**: agent-orchestration, FSM, workspace-isolation, linear-tracker, codex, retry-strategy
 
 ---
 
-## 核心架构
+## 30秒 TL;DR
 
-```
-Linear Issue Board
-       ↓  (30s 轮询)
-  Orchestrator
-  ├── Candidate 筛选（priority → age → identifier 排序）
-  ├── Concurrency 控制（全局 + 按状态分槽位）
-  ├── Workspace Manager（per-issue 目录，一次创建多次复用）
-  └── Agent Runner
-        ├── 构建 prompt（Liquid 模板 + issue 变量）
-        ├── 启动 codex app-server 子进程
-        └── 读 stdout JSON-RPC 流直到 turn/completed
-```
-
-六个抽象层：`Policy → Config → Coordination → Execution → Integration → Observability`
+> Symphony 是一个 Issue Tracker → Agent 的调度器：从 Linear 读取 issue，给每个 issue 派发一个 codex 子进程在隔离 workspace 里工作，用 FSM 管理 issue 生命周期。核心架构哲学：**编排器只读 Tracker，Agent 写 Tracker**；所有持久状态在 Tracker + 文件系统里，编排器无数据库，崩溃重启零状态丢失。
 
 ---
 
-## 值得复用的设计模式
+## 概念总览
 
-### 1. 五态状态机（Issue Orchestration States）
-
-```
-Unclaimed
-   ↓ dispatch
- Claimed    ← 防止重复 dispatch 的"锁"
-   ↓ launch
- Running    ← 有 worker task
-   ↓ fail
-RetryQueued ← 有退避定时器
-   ↓ terminal/gone
- Released
-```
-
-关键设计：`Claimed` 状态是一个"预留"状态，不是真正在跑。先 claim，再 launch，防止并发 tick 重复 dispatch 同一个 issue。
+| 概念 | 核心思想 | 对应 mini_symphony |
+|------|---------|---------|
+| Issue Claim FSM | 5 状态防重复派发 | TASKS.md 的 `[ ]`/`[x]` 标记 |
+| Run Attempt FSM | 11 阶段追踪每次 agent 尝试 | max_rounds 计数 |
+| Workspace 持久化 | 同一 issue 跨次重试复用同一目录 | 每次重新创建（可改进） |
+| Hook 扩展点 | 4 个生命周期 shell 脚本 | 无 |
+| Blocker 规则 | Todo issue 有未完成依赖则不派发 | 无 |
+| 两类重试策略 | continuation（固定 1s）vs failure（指数退避） | 统一 max_rounds |
+| Tracker-driven 恢复 | 重启后 poll Tracker 重建状态，无需数据库 | 重启后扫描 TASKS.md |
 
 ---
 
-### 2. Run Attempt 生命周期（线性状态机）
+## 深读
+
+### Issue 生命周期 FSM（5 状态）
 
 ```
-PreparingWorkspace
-→ BuildingPrompt
-→ LaunchingAgentProcess
-→ InitializingSession
-→ StreamingTurn
-→ Finishing
-→ {Succeeded | Failed | TimedOut | Stalled | CanceledByReconciliation}
+Unclaimed → Claimed → Running → [成功完成]
+                   ↘ RetryQueued → [重新 Running]
+              Released ← [终态/不符合条件/重试完成]
 ```
 
----
+**关键设计**：`Claimed` 状态在 `Running` 之前，用于防止并发编排器重复派发同一 issue。
 
-### 3. Workspace 隔离三条安全不变量
+### Run Attempt 生命周期（11 阶段）
+
+```
+PreparingWorkspace → BuildingPrompt → LaunchingAgentProcess
+→ InitializingSession → StreamingTurn → Finishing
+→ [Succeeded | Failed | TimedOut | Stalled | CanceledByReconciliation]
+```
+
+每个终态触发不同的重试逻辑和可观测性日志。
+
+### Workspace 隔离（3 条安全不变式）
+
+1. **执行边界**：agent 只在 per-issue workspace 路径里运行
+2. **路径包含**：workspace 路径必须是 workspace root 的绝对路径前缀子集
+3. **名称净化**：`[A-Za-z0-9._-]` 以外的字符 → 下划线
+
+**workspace 持久化**：同一 issue 的多次重试复用同一目录。成功完成不自动删除，通过 Tracker 终态触发清理（reconciliation 或启动扫描）。
+
+### 4 个生命周期 Hook
+
+| Hook | 触发时机 | 失败行为 |
+|------|---------|---------|
+| `after_create` | 新 workspace 创建后 | Fatal：中止创建 |
+| `before_run` | 每次 agent 尝试前 | Fatal：中止本次尝试 |
+| `after_run` | 每次尝试结束（无论结果） | 记录日志，忽略 |
+| `before_remove` | workspace 删除前 | 记录日志，忽略 |
+
+Hook 是 workspace 目录下的 shell 脚本，`timeout_ms` 默认 60 秒。
+
+### codex App-Server 协议（4 步握手）
+
+```
+Client → codex app-server (stdio, line-delimited JSON)
+
+1. initialize {clientInfo, capabilities}
+   ← response
+2. initialized  [notification]
+3. thread/start {approvalPolicy, sandbox, cwd}
+   ← {thread.id}
+4. turn/start {threadId, prompt, title, sandboxPolicy}
+   ← stream: turn/completed | turn/failed | turn/cancelled | timeout
+```
+
+`session_id = thread_id + "-" + turn_id`
+
+**Continuation turn**：同一 thread_id 复用，只发 guidance，不重发原始 prompt（避免 context 重复）。
+
+### 两类重试策略
 
 ```python
-# 不变量 1: agent 只能在自己的 workspace 目录里运行
-assert cwd == workspace_path
+# Continuation retry（正常完成，检查是否需要继续）
+delay = 1000  # 固定 1 秒
 
-# 不变量 2: workspace 必须在 workspace root 下（防止路径穿越）
-assert os.path.abspath(workspace_path).startswith(os.path.abspath(workspace_root))
-
-# 不变量 3: workspace key 只允许 [A-Za-z0-9._-]，其他字符替换为 _
-workspace_key = re.sub(r'[^A-Za-z0-9._-]', '_', issue.identifier)
+# Failure retry（异常退出）
+delay = min(10000 * (2 ** (attempt - 1)), max_retry_backoff_ms)
+# 默认 max_retry_backoff_ms = 300000（5 分钟）
 ```
+
+**关键区分**：continuation = 正常工作流（agent 完成一轮，看看还有没有工作）；failure = 出错（需要等待冷却）。两类混用会过度惩罚正常完成。
+
+### 候选资格规则（所有条件同时满足才派发）
+
+- `id`、`identifier`、`title`、`state` 字段存在
+- state 在 `active_states` 且不在 `terminal_states`
+- 未在运行、未被 claim
+- 全局并发槽位可用
+- per-state 并发槽位可用
+- **Blocker 规则**：Todo state 的 issue 若有任何非终态 blocker，不派发
+
+### 调度循环（每个 poll tick）
+
+```
+1. Reconcile（stall 检测 + Tracker 状态刷新）
+2. Preflight 校验（workflow、tracker、codex 命令）
+3. Fetch 候选 issue
+4. 排序：priority ↑ → creation_time 最老 → identifier 字典序
+5. 按并发上限派发
+6. 通知可观测性消费者
+```
+
+校验失败 → 跳过派发，但 reconcile 继续执行。
 
 ---
 
-### 4. WORKFLOW.md 模式：配置 + Prompt 合一
+## 心智模型
 
-```yaml
----
-# YAML front matter = 配置
-tracker:
-  kind: linear
-  api_key: $LINEAR_API_KEY
-  project_slug: my-project
-  active_states: "Todo, In Progress"
+> **"编排器 = 调度器 + 读者；Agent = 执行者 + 写者。"** Symphony 永远不写 Tracker，只读。这意味着你可以随时把 Symphony 接到任何已有的 Linear 项目上，它不会污染你的 backlog。
 
-polling:
-  interval_ms: 30000
-
-agent:
-  max_concurrent_agents: 10
-
-hooks:
-  after_create: |
-    git clone $REPO_URL .
-    npm install
-  before_run: |
-    git fetch && git checkout main
----
-
-# Markdown body = Prompt Template（Liquid 语法）
-你是一个 coding agent，请完成以下 issue：
-
-**标题**: {{ issue.title }}
-**描述**: {{ issue.description }}
-
-{% if attempt %}
-这是第 {{ attempt }} 次重试。请先查看上次的错误，再开始工作。
-{% endif %}
-```
-
-**好处**：配置和 prompt 版本控制在同一文件；动态热重载无需重启；prompt 能感知重试次数。
+**适用条件**：Linear（或兼容 tracker），单机部署，issue 级别的并发任务。
+**失效条件**：多机分布式部署（单编排器权威假设失效，需要分布式锁）；非 Linear tracker（需要实现新的 tracker adapter）。
+**在我的工作中如何用**：mini_symphony 已经实现了类似的"编排器只读 TASKS.md，agent 写文件"的模式——这验证了该架构方向的正确性。下一步可以借鉴 Symphony 的 per-task workspace 持久化和 blocker 规则。
 
 ---
 
-### 5. 两种重试策略
+## 非显见洞见
 
-```
-Continuation retry（正常退出但未完成）:
-  delay = 1000 ms (固定)
+- **洞见**：编排器不持久化状态——崩溃重启后 poll Tracker + 扫描文件系统即可重建完整状态
+  - 所以：Symphony 的"数据库"就是 Linear + 文件系统，两者都在编排器外部
+  - 所以：更新 Symphony 二进制无需数据迁移、无需协调正在运行的 agent
+  - 因此可以：mini_symphony 可以采用同样模式——把所有状态外化到 TASKS.md + workspace 目录，重启只需重新扫描，不需要 state 序列化
 
-Failure retry（出错）:
-  delay = min(10000 × 2^(attempt-1), max_retry_backoff_ms)
-  默认 max = 300000 ms（5 分钟）
+- **洞见**：Continuation retry（1s）和 Failure retry（指数退避）是两种本质不同的事件，不能共用一套策略
+  - 所以：把正常完成和失败都用"等待重试"处理会过度惩罚正常工作流
+  - 所以：mini_symphony 的 `max_rounds` 无法区分"agent 主动完成一轮"和"agent 崩溃"
+  - 因此可以：给 mini_symphony 的退出码赋予语义——exit(0) = continuation，exit(1) = failure，分别触发不同的重试延迟
 
-例: 1次失败→10s, 2次→20s, 3次→40s, ... 上限5分钟
-```
-
----
-
-### 6. Coding Agent App-Server 通信协议
-
-Agent 作为子进程运行，通过 **stdout 的换行分隔 JSON** 通信（stderr 忽略）：
-
-```
-# 启动握手顺序（严格有序）
-orchestrator → agent:  initialize request
-agent → orchestrator:  initialized notification
-orchestrator → agent:  thread/start request
-agent → orchestrator:  thread/start result  ← 拿到 thread_id
-orchestrator → agent:  turn/start request
-agent → orchestrator:  turn/start result    ← 拿到 turn_id
-
-# 运行期
-agent → orchestrator:  [各种事件消息流...]
-agent → orchestrator:  turn/completed | turn/failed | turn/cancelled
-
-# Session ID
-session_id = f"{thread_id}-{turn_id}"
-
-# 续跑（继续用同一 thread）
-orchestrator → agent:  turn/start (reuse threadId, new turnId)
-```
-
-**Continuation** = 同一 thread 下多个 turn；**Retry** = 全新 thread。
+- **洞见**：Workspace 跨重试持久化让 agent 能从上次失败的地方继续工作
+  - 所以：agent 不需要重新做已经完成的文件修改，只需要从断点继续
+  - 所以：这对长任务（数小时的代码重构）的成本效益尤其显著
+  - 因此可以：mini_symphony 目前每次重试都在新的工作目录里启动——改为复用 per-issue workspace 可以显著减少重复工作
 
 ---
 
-### 7. 并发控制（双层槽位）
+## 隐含假设
 
-```python
-# 全局槽
-available = max_concurrent_agents - len(running)
+- **假设：单编排器权威**。用来避免重复派发。若不成立（多实例并行运行）：两个编排器可能同时 claim 同一 issue——需要 distributed lock（Redis SET NX 或数据库行锁）。
 
-# 按状态槽（覆盖全局）
-if state in max_concurrent_agents_by_state:
-    state_available = max_concurrent_agents_by_state[state] - count_running_in_state(state)
-    available = min(available, state_available)
+- **假设：Linear 作为唯一 Tracker**。GraphQL schema 是 Linear 特有的。若不成立（GitHub Issues、Jira）：需要实现新的 tracker adapter；当前 issue 字段命名强依赖 Linear 的 API 格式。
 
-# dispatch 优先级排序
-candidates.sort(key=lambda i: (i.priority, i.created_at, i.identifier))
-```
+- **假设：codex app-server 可在本地执行**。stdio 协议假设子进程与编排器在同一机器。若不成立（远程 agent 执行）：需要 WebSocket 或 gRPC 替代 stdio。
 
 ---
 
-### 8. Reconciliation（主动终止检测）
+## 反模式与陷阱
 
-每次 poll tick 除了 dispatch 新任务，还要做 reconciliation：
+- **Stall detection 被禁用的隐患**：`stall_timeout_ms ≤ 0` 完全禁用 stall 检测 → hung agent 永久占用并发槽位，其他 issue 无法被派发。→ 正确做法：始终设置合理的 stall timeout（默认 5 分钟是合理起点）；在 `after_run` hook 里记录每次 agent 的实际执行时间用于调优。
 
-```
-Part A — Stall 检测:
-  elapsed = now - max(last_codex_timestamp, started_at)
-  if elapsed > stall_timeout_ms → terminate + retry
+- **`before_run` hook bug 导致全面停工**：`before_run` 失败是 Fatal，当前 attempt 中止。如果 hook 有 bug 且无法修复，所有 issue 都无法被派发。→ 正确做法：hook 脚本必须有 dry-run 模式；上线前在非生产 workspace 测试；`after_run` 可以用于记录 hook 的输出便于调试。
 
-Part B — Tracker 状态同步:
-  fetch 所有 running issue 的当前状态
-  terminal state → terminate + cleanup workspace
-  active state   → 更新快照
-  其他           → terminate，不清理（可能是状态异常）
-```
+- **Workspace 名称净化不完整**：若净化逻辑漏掉某个字符类（如 Unicode 字符），issue identifier 中的特殊字符可能产生路径穿越风险（`../` 序列）。→ 正确做法：白名单而非黑名单：只允许 `[A-Za-z0-9._-]`，其余全部替换为下划线；在创建 workspace 前验证最终路径是 root 的子路径。
+
+- **Per-tick reconciliation 的时间窗口盲区**：如果 Tracker 状态在两次 poll 之间变化又恢复（issue 被 close 后立刻 reopen），编排器可能错过这次状态变化。→ 正确做法：在 agent 写入 Tracker 的关键操作前，先验证 issue 当前状态；不依赖编排器的 snapshot 与 Tracker 完全同步。
 
 ---
 
-### 9. 生命周期钩子
+## 与现有知识库的连接
 
-```bash
-# 4 个钩子（均在 workspace 目录下以 bash -lc 执行）
-after_create:  初始化 workspace（克隆代码、安装依赖）  失败→中止
-before_run:    每次 attempt 前准备（git pull、清理）    失败→中止本次
-after_run:     每次 attempt 后清理                      失败→仅记录
-before_remove: workspace 删除前                         失败→仅记录
-```
+- 关联 `python/mini_symphony.py`：Symphony 的 per-issue workspace 持久化（跨重试复用目录）、blocker 规则、两类重试策略都是 mini_symphony 可以直接借鉴的增强点；Symphony 的 stall detection 对应 mini_symphony 的 `max_rounds` 但更准确（基于时间而非步骤数）
+- 关联 `snippets/atomic-file-write.rs`：Symphony 的 workspace 安全不变式（路径包含验证）与原子写入的"防崩溃写入"共享同一类安全思维——在文件系统操作中，防御性检查比事后恢复更便宜
+- 关联 `python/sandbox_execute.py`：Symphony 的 codex subprocess + stdio 协议与 sandbox_execute 的 subprocess 隔离模式完全一致；sandbox_execute 可以作为 mini_symphony worker 的执行沙箱
 
 ---
 
-## 单一可信内存状态（重要设计决策）
+## 衍生项目想法
 
-Orchestrator 维护一个**单一权威内存状态**，没有外部数据库：
+### mini_symphony 退出码语义化（Continuation vs Failure 分离）
 
-```
-{
-  poll_interval_ms,
-  max_concurrent_agents,
-  running: Map<issue_id, LiveSession>,
-  claimed: Set<issue_id>,
-  retry_attempts: Map<issue_id, RetryEntry>,
-  completed: Set<issue_id>,
-  codex_totals: { input_tokens, output_tokens, seconds_running },
-  codex_rate_limits: ...
-}
-```
+**来源组合**：[Symphony: continuation retry 1s fixed vs failure retry exponential backoff] + [mini_symphony: max_rounds 统一处理所有退出]
+**为什么有意思**：mini_symphony 目前把"agent 正常完成所有 turns"和"agent 崩溃/超时"用同一套逻辑处理，这错误地惩罚了正常完成的任务；Symphony 的两类重试策略揭示了这是两种本质不同的事件
+**最小 spike**：给 mini_symphony 定义退出码语义（exit 0 = 正常完成，exit 1 = 失败），在 orchestrator 层根据退出码分别触发 1s 重检 vs 指数退避重试
+**潜在难点**：子进程（pi/claude CLI）的退出码语义不一定由 mini_symphony 控制，需要封装一层
 
-**重启代价**：所有 retry timer 丢失，但 running agents 不受影响（它们是独立子进程）；重启后下次 poll 会重新 dispatch 未完成的 issue。这是**有意的简化**，规格中明确写了 "TODO: Persist retry queue/session metadata across restarts"。
+### mini_symphony per-task Workspace 持久化
 
----
+**来源组合**：[Symphony: workspace 跨重试持久化，agent 从断点继续] + [mini_symphony: 每次任务在新目录启动]
+**为什么有意思**：当前 mini_symphony 的任务失败后重试时，agent 看不到上次的工作产物（已修改的文件、已生成的代码），需要从零开始；Symphony 的持久化 workspace 让 agent 的重试成本接近于"继续"而非"重做"
+**最小 spike**：在 TASKS.md 格式里加 `workspace: ./workspaces/{task-id}` 字段；mini_symphony 在 `before_run` 时创建/复用该目录；agent 在该目录下工作
+**潜在难点**：需要处理 workspace 污染问题——上次失败的中间状态文件可能干扰新的尝试；需要 `before_run` hook 做状态清理或 git stash
 
-## 与现有 snippets 的关联
+### TASKS.md 依赖关系（Blocker 规则）
 
-| Symphony 概念 | CodeSnippets 相关文件 |
-|--------------|----------------------|
-| 单次 turn 的 Agent 执行 | `python/sandbox_execute.py`（隔离子进程执行） |
-| 多轮 context 管理 | `python/tape_context.py`（anchor-based context） |
-| Simon Willison 的 agentic 模式 | `analysis/simon-willison-agentic-patterns.md` |
-
----
-
-## 可以延伸的方向
-
-### 方向 A：Python 迷你 Symphony
-用 Python 实现 SPEC 的核心子集：Linear 轮询 + 子进程 Agent + 指数退避。不需要 Elixir，SPEC 是语言无关的。核心只需要：
-
-```python
-# 伪代码骨架
-while True:
-    issues = linear.fetch_candidates()
-    for issue in prioritized(issues):
-        if slots_available() and not claimed(issue):
-            claim(issue)
-            spawn_agent(issue)   # 参考 sandbox_execute.py
-    reconcile_running()
-    sleep(poll_interval)
-```
-
-### 方向 B：WORKFLOW.md 模式用于个人任务
-把 WORKFLOW.md 的"配置 + prompt 合一 + 热重载"模式用于个人 agent workflow 管理。比如：一个 `WORKFLOW.md` 定义"每天处理 GitHub notifications"的规则和 prompt。
-
-### 方向 C：App-Server 协议的 Mock 实现
-写一个 mock codex app-server，用于测试 orchestrator 逻辑，不依赖真实的 Codex/Claude Code。协议是 line-delimited JSON，很容易用 Python subprocess 模拟。
-
----
-
-## 可选 HTTP API（/api/v1）
-
-```
-GET  /api/v1/state                    # 全局状态快照
-GET  /api/v1/<issue_identifier>       # 单 issue 详情
-POST /api/v1/refresh                  # 立即触发一次 poll（202 Accepted）
-```
-
----
-
-## 关键取舍总结
-
-| 决策 | 选择 | 理由 |
-|------|------|------|
-| 状态存储 | 纯内存 | 简单；重启后重新 dispatch 即可 |
-| 重试 | 指数退避 + cap | 避免无限快重试；continuation 用固定 1s |
-| Workspace | 磁盘目录，复用 | Agent 需要持久上下文（git history 等） |
-| 配置 | WORKFLOW.md 热重载 | 不重启服务改策略；prompt 也可更新 |
-| Ticket 写操作 | 交给 Agent，非 Orchestrator | Orchestrator 职责边界清晰 |
-| 安全 | 路径校验 + 容器 | Agent 可信环境；容器是推荐但非强制 |
+**来源组合**：[Symphony: Todo issue 有未完成 blocker 则不派发] + [mini_symphony: TASKS.md 任务队列无依赖关系]
+**为什么有意思**：当前 TASKS.md 任务是完全平行的，无法表达"任务 B 依赖任务 A 的输出"；加入 blocker 规则后，mini_symphony 可以处理有 DAG 依赖关系的任务图，而不仅仅是独立任务队列
+**最小 spike**：扩展 TASKS.md 格式，支持 `blocked_by: [task-1, task-2]`；mini_symphony 在选择下一个任务时跳过有未完成 blocker 的任务
+**潜在难点**：TASKS.md 是 Markdown checklist 格式，解析依赖关系需要约定注释格式；需要防止循环依赖

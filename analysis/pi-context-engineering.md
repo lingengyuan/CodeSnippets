@@ -1,27 +1,41 @@
-# pi 的 Context Engineering：一个 900 Token Coding Agent 的七个设计决策
+# pi 的 Context Engineering：一个 260-Token Coding Agent 的七个设计决策
 
-> 来源: 文章《pi：一个 900 token 的 Coding Agent 到底能走多远》
->       原文: mariozechner.at/posts/2025-11-30-pi-coding-agent/
->       开源仓库: github.com/badlogic/pi-mono
-> 日期: 2026-03-05
-> 作者: Mario Zechner（libGDX 游戏引擎作者）
-> 关联: analysis/symphony-orchestration-spec.md, python/mini_symphony.py
-
----
-
-## 一句话
-
-pi 用不到 1000 token 的 system prompt + 工具定义，砍掉了主流 coding agent 90% 的功能，
-在 Terminal-Bench 2.0 上提交了成绩，并在作者日常工作中使用了数周。
-核心论点：**前沿模型经过大量 RL 训练，天然理解 coding agent 是什么，不需要万字 system prompt 来"教"它。**
+**来源**: [pi：一个 900 token 的 Coding Agent 到底能走多远](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/)
+**开源仓库**: https://github.com/badlogic/pi-mono
+**作者**: Mario Zechner（libGDX 游戏引擎作者）
+**日期**: 2026-03-08
+**标签**: context-engineering, minimal-prompt, coding-agent, cross-provider, terminal-ui
 
 ---
 
-## 完整 System Prompt（原文，约 200 token）
+## 30秒 TL;DR
 
+> 主流 coding agent 用 10,000+ token 的系统提示，pi 用 260 token——产出质量相当。原因：RL 训练已经把"coding agent 行为"烧进了模型权重，系统提示是用来**定制**的，不是用来**解释基础**的。pi 的七个架构决策每一个都在问同一个问题：这个东西真的需要吗？
+
+---
+
+## 概念总览
+
+| 决策 | 选择 | 被放弃的替代方案 |
+|------|------|------|
+| 系统提示长度 | 260 token | 10,000+ token（Claude Code、Codex） |
+| 工具数量 | 4 个（read/write/edit/bash） | 扩展工具面 |
+| MCP 集成 | ❌ 不用 | MCP（7-9% context overhead） |
+| 状态管理 | 外部文件（计划/todo） | 内置功能 |
+| 子 Agent | 需显式 bash 调用 | 自动派生 |
+| 跨 Provider 切换 | `<thinking>` 标签中转 | Provider 锁定 |
+| 终端 UI 渲染 | 差分渲染（只重绘变化行） | 全屏重绘 |
+
+---
+
+## 深读
+
+### 决策 1：系统提示极简化
+
+**完整 system prompt**（约 260 token）：
 ```
-You are an expert coding assistant. You help users with coding tasks
-by reading files, executing commands, editing code, and writing new files.
+You are an expert coding assistant helping with coding tasks by reading files,
+executing commands, editing code, and writing new files.
 
 Available tools:
 - read: Read file contents
@@ -34,318 +48,134 @@ Guidelines:
 - Use read to examine files before editing
 - Use edit for precise changes (old text must match exactly)
 - Use write only for new files or complete rewrites
-- When summarizing your actions, output plain text directly
-  - do NOT use cat or bash to display what you did
-- Be concise in your responses
+- When summarizing actions, output plain text directly—do NOT use cat or bash
+  to display what you did
+- Be concise in responses
 - Show file paths clearly when working with files
-
-Documentation:
-- Your own documentation (including custom model setup and theme
-  creation) is at: /path/to/README.md
-- Read it when users ask about features, configuration, or setup,
-  and especially if the user asks you to add a custom model or
-  provider, or create a custom theme.
 ```
 
-唯一会被追加到末尾的是用户的 AGENTS.md 文件（全局和项目级的）。
+**注意缺失的内容**：没有示例、没有防护规则、没有领域特定指令、没有解释"什么是 coding agent"。
 
----
+### 决策 2：4 工具架构
 
-## 完整工具定义（原文）
+| 工具 | 参数 | 特殊能力 |
+|------|------|------|
+| `read` | path, offset, limit | 支持图片（jpg/png/gif/webp）；默认 2000 行 |
+| `write` | path, content | 自动创建父目录 |
+| `edit` | path, oldText, newText | 要求精确匹配；手术级修改 |
+| `bash` | command, timeout | 可选超时；同步执行 |
 
-```
-read
-  Read the contents of a file. Supports text files and images (jpg, png,
-  gif, webp). Images are sent as attachments. For text files, defaults to
-  first 2000 lines. Use offset/limit for large files.
-  - path: Path to the file to read (relative or absolute)
-  - offset: Line number to start reading from (1-indexed)
-  - limit: Maximum number of lines to read
+额外只读工具：`grep`、`find`、`ls`。
 
-write
-  Write content to a file. Creates the file if it doesn't exist, overwrites
-  if it does. Automatically creates parent directories.
-  - path: Path to the file to write (relative or absolute)
-  - content: Content to write to the file
+### 决策 3：拒绝 MCP
 
-edit
-  Edit a file by replacing exact text. The oldText must match exactly
-  (including whitespace). Use this for precise, surgical edits.
-  - path: Path to the file to edit (relative or absolute)
-  - oldText: Exact text to find and replace (must match exactly)
-  - newText: New text to replace the old text with
+作者的计算：MCP 服务器需要在 context 开头加载完整的工具 schema，约 13,700-18,000 token——即使这些工具从未被调用。相比之下，CLI 工具 + README 是"按需披露"：只有被调用时才占用 context。
 
-bash
-  Execute a bash command in the current working directory. Returns stdout
-  and stderr. Optionally provide a timeout in seconds.
-  - command: Bash command to execute
-  - timeout: Timeout in seconds (optional, no default timeout)
-```
+**核心洞见**："Progressive disclosure via CLI + README" vs "upfront schema dump via MCP"。
 
-此外还有 grep、find、ls 三个只读工具，默认关闭，只在 `pi --tools read,grep,find,ls` 时启用。
+### 决策 4：文件即状态
 
----
+计划和 todo 存文件，不存在内存/内置功能里：
+- 可跨 session 持久化
+- 可用 git 版本化
+- 可被任意外部工具读写
+- 完整可观测（不是 agent 的内部状态）
 
-## 七个设计决策
+### 决策 5：子 Agent 默认不存在
 
-### 决策 1：极简 System Prompt
+子 Agent 只能通过显式 `bash` 调用派生。这避免了"黑箱中的黑箱"——子 Agent 的行为无法从主 session 观测。
 
-**做了什么**: system prompt + 工具定义合计不到 1000 token。
+### 决策 6：跨 Provider 上下文切换
 
-**为什么可行**:
-> "All the frontier models have been RL-trained up the wazoo, so they
-> inherently understand what a coding agent is. There does not appear to be
-> a need for 10,000 tokens of system prompt."
-
-对比参照：
-- Claude Code 的 system prompt：~10,000 token
-- Codex 的 system prompt：公开在 GitHub，同样很精简（Mario 认为是进一步佐证）
-- opencode：被描述为 Claude Code 原始 prompt 的精简版
-
-**注意事项**: 这是基于个人使用和 benchmark 的观察，**不是严格消融实验**。
-没有控制变量下对比"同一模型 + 原生 prompt" vs "同一模型 + 极简 prompt"的效果差异。
-
----
-
-### 决策 2：只给 4 个工具
-
-**做了什么**: read、write、edit、bash。
-
-**核心论点**:
-> bash 本身就是万能工具。你需要 grep？`bash: grep -rn "pattern" src/`
-> 你需要 git？`bash: git diff HEAD~1`。你需要跑测试？`bash: npm test`
-
-**bash 工具的一个重要细节**: pi 的 bash 是**同步执行**的，没有后台进程管理。
-如果需要运行 dev server 同时让 agent 干别的事，Mario 的方案是用 tmux：
-
-```bash
-# Agent 在 tmux session 里启动 dev server
-bash: tmux new-session -d -s devserver "npm run dev"
-
-# Agent 继续在主 session 工作
-bash: curl http://localhost:3000/api/health
-
-# 你可以随时切到 tmux session 观察
-tmux attach -t devserver
+```typescript
+// 从 Claude 切换到 GPT 时，thinking trace 转换为 <thinking> 标签
+const claude = getModel('anthropic', 'claude-sonnet-4-5');
+const gpt = getModel('openai', 'gpt-5.1-codex');
+// context 自动适配（provider 特有格式 → 通用 <thinking> 标签）
 ```
 
-对 Claude Code 后台 bash 的批评："poor observability"，早期版本在 context compaction 后
-会丢失对后台进程的追踪。tmux 方案的优势：你能看到一切，还能直接介入。
-
----
-
-### 决策 3：不用 MCP——渐进式工具发现
-
-**做了什么**: pi 不内置任何外部工具，完全不支持 MCP。
-
-**Mario 给出的具体数据**:
-
-| MCP Server | 工具数 | Token 消耗 |
-|-----------|--------|-----------|
-| Playwright MCP | 21 个工具 | ~13,700 token |
-| Chrome DevTools MCP | 26 个工具 | ~18,000 token |
-
-> "That's 7-9% of your context window gone before you even start working.
-> Many of these tools you'll never use in a given session."
-
-**一旦启用 MCP server，这些工具描述在每个 session 的每次 API 调用中都会被发送，无论你是否实际使用。**
-
-**pi 的替代方案: CLI + README（Progressive Disclosure）**
+### 决策 7：差分终端渲染
 
 ```
-MCP 模式:
-  Session 开始 → 加载所有工具描述 → 固定消耗 token（无论是否使用）
-
-pi 模式:
-  Session 开始 → 0 额外 token
-  需要某工具时 → read README.md → bash 调用 → 只在使用时消耗 token
+只重绘从第一个变化行开始的内容
++ 同步输出（CSI ?2026h/l）：原子更新，避免闪烁
 ```
 
-Mario 把这叫做 "progressive disclosure"（渐进式披露）。
-在软件工程里，这等价于**延迟加载（Lazy Loading）**——token 成本按需支付，不预付。
-
-Mario 维护了一个 CLI 工具集合：github.com/badlogic/agent-tools，每个工具就是一个命令行程序 + 一个 README。
-
-如果确实离不开 MCP，Mario 推荐了 Peter Steinberger 的 mcporter 工具，
-它可以把 MCP server 包装成 CLI 工具。
+标准终端 UI 框架（Bubble Tea 等）重绘整个屏幕 → 闪烁。pi 只重绘变化行，配合同步输出转义序列实现零闪烁。
 
 ---
 
-### 决策 4：不要子 Agent——可观测性优先
+## 心智模型
 
-**做了什么**: pi 不在 session 中自动派生子 agent。
+> **"RL 训练已经教会模型怎么做 coding agent，系统提示是用来说'和通常情况有什么不同'的。"**
 
-**对子 agent 的批评**:
-> "When Claude Code needs to do something complex, it often spawns a sub-
-> agent to handle part of the task. You have zero visibility into what that
-> sub-agent does. It's a black box within a black box."
-
-具体问题：
-- 主 agent 决定给子 agent 什么上下文，你无法控制
-- 子 agent 出错时，你看不到完整对话，调试困难
-- context transfer between agents is poor
-
-**pi 的替代方案**:
-
-**方案一: Artifact 驱动的工作流**
-先用一个 session 专门做上下文收集，产出一个 artifact（比如 CONTEXT.md），
-然后在新 session 里基于这个 artifact 工作。这样上下文完整、可审查、可复用。
-
-> "Using a sub-agent mid-session for context gathering is a sign you didn't plan ahead."
-
-**方案二: 通过 bash 启动自身**（仅特定场景）
-pi 通过 bash 启动自身的新实例做 code review，这是 pi 的自定义 slash command 格式
-（markdown 模板 + 参数支持）：
-
-```markdown
----
-description: Run a code review sub-agent
----
-Spawn yourself as a sub-agent via bash to do a code review: $@
-
-Use `pi --print` with appropriate arguments. If the user specifies
-a model, use `--provider` and `--model` accordingly.
-
-Pass a prompt to the sub-agent asking it to review the code for:
-- Bugs and logic errors
-- Security issues
-- Error handling gaps
-
-Do not read the code yourself. Let the sub-agent do that.
-
-Report the sub-agent's findings.
-```
-
-使用时，agent 把自己作为 bash 命令执行，子 agent 的完整输出对你可见。
-
-**Mario 也明确说了他不是完全否定子 agent**:
-> "I'm not dismissing sub-agents entirely. There are valid use cases."
-
-他最常用的场景是代码 review。他反对的是在 session 中自动派生子 agent 来并行实现
-多个功能——他认为这是一个反模式（"anti-pattern"），会导致代码质量下降。
+**适用条件**：现代 frontier 模型（Sonnet、GPT-4 及以上），通用 coding 任务。
+**失效条件**：高度垂直领域（医疗、法律）或严格安全合规要求——这些确实需要明确的系统提示覆盖。
+**在我的工作中如何用**：审计 mini_symphony 的 WORKFLOW.md system prompt，删除所有解释"agent 是什么"的内容，只保留项目特有的约束和上下文。预期可以从当前 N 行压缩到 <10 行核心内容。
 
 ---
 
-### 决策 5：不做 Plan Mode，不做 TODO——一切皆文件
+## 非显见洞见
 
-**Plan Mode 的批评**:
-> "You can basically not use plan mode without approving a shit ton of
-> command invocations, because without that, planning is basically
-> impossible."
+- **洞见**：系统提示 260 token vs 10,000 token 的质量差距可能比预期小得多
+  - 所以：token 成本的大头不在于"解释基础"而在于"项目特有上下文"
+  - 所以：system prompt 的 ROI = 差异化内容 / 总 token 数；通用 agent 描述的 ROI ≈ 0
+  - 因此可以：为每个项目维护一个**最小化 CLAUDE.md**，只写"这个项目和通常项目有什么不同"，不写"你是一个 coding agent"
 
-在 Claude Code 中，planning 通常由子 agent 执行，你看不到 agent 实际查看了哪些文件、遗漏了什么。
+- **洞见**：一旦 agent 可以写代码+执行代码，任何 prompt 级别的权限系统都是安全剧场
+  - 所以：真正的安全边界是执行环境（Docker + 网络隔离），不是 prompt 里的警告
+  - 所以：permission prompt（"是否允许执行此命令？"）在不受信任的环境中没有价值
+  - 因此可以：在生产部署 mini_symphony 时，不依赖任何 prompt 级别的限制，而是把 agent 运行在网络受限的 Docker 容器里
 
-**pi 的方案——直接写文件**:
-
-```markdown
-# PLAN.md
-
-## Goal
-Refactor authentication system to support OAuth
-
-## Approach
-1. Research OAuth 2.0 flows
-2. Design token storage schema
-3. Implement authorization server endpoints
-4. Update client-side login flow
-5. Add tests
-
-## Current Step
-Working on step 3 - authorization endpoints
-```
-
-好处：跨 session 可用、可 Git 版本控制、你和 agent 可以协同编辑。
-如果想在规划阶段限制 agent 只读不写：`pi --tools read,grep,find,ls`
-
-**TODO 系统同理**:
-> "To-do lists generally confuse models more than they help. They add state
-> that the model has to track and update, which introduces more
-> opportunities for things to go wrong."
-
-替代方案同样是文件，agent 需要时 read，完成后 edit 打勾。
-状态是显式的、可审查的、可版本控制的。
+- **洞见**：MCP 的"协议税"是每次 session 固定支付的（13.7k-18k token），而不是按工具调用支付
+  - 所以：MCP 工具数量越多，固定税越重——即使只用其中 2 个工具
+  - 所以：CLI + README 的"零 token 税"在 token 敏感场景有明显优势
+  - 因此可以：在 insight_agent 里，把工具描述写得极简（已在 SYSTEM_PROMPT 中这样做），避免工具描述本身成为 context 负担
 
 ---
 
-### 决策 6：跨 Provider Context Handoff
+## 隐含假设
 
-pi-ai 从设计之初就支持在不同 LLM provider 之间传递上下文。
-Context 对象是纯粹的消息数组，可序列化，可在 Claude → GPT → Gemini 之间传递。
+- **假设：单用户专家操作者**。"我从没找到需要 max-steps 的场景" → 作者知道什么时候该打断。非专家用户需要明确的步骤上限和中断机制。若不成立：agent 可能无限循环直到 context 耗尽。
 
-局限（Mario 坦承）：Context handoff 只能是 best-effort：
-> "Since each provider has their own way of tracking tool calls and thinking
-> traces, this can only be a best-effort thing."
+- **假设：Token 计费可以是 best-effort**。"我没有多用户计费需求"。若不成立（SaaS 产品）：无法精确归因 token 消耗到具体用户，billing 不准确。
 
----
-
-### 决策 7：默认 YOLO——面对安全边界的现实
-
-**做了什么**: pi 默认以完全无限制模式运行：不弹权限确认框，不用小模型预审命令，
-完整的文件系统访问，可以执行任何命令。
-
-**Mario 引用 Simon Willison 的分析**:
-> "If an LLM has access to tools that can read private data and make network
-> requests, you're playing whack-a-mole with attack vectors."
-
-他对现有安全措施的评价是 "security theater"（安全剧场）:
-> "As soon as your agent can write code and run code, it's pretty much game over."
-
-他专门提到 Claude Code 用 Haiku 预审查 bash 命令的做法，认为这增加了延迟但无法
-真正防止有意的数据外泄。
-
-**务实建议**: 如果担心安全问题，把 pi 跑在容器里（"run pi inside a container"），
-而不是依赖 agent 内部的权限控制。
-
-**需要指出的是**: 这是一个有争议的设计选择。安全措施即使不完美也有其价值——
-提高攻击门槛、防止意外误操作、满足合规要求。在团队或企业环境中需要更审慎地评估。
+- **假设：单机 session，不需要 context compaction**。"几百条消息都没问题"。若不成立（超长 session）：context window 耗尽，没有内置压缩机制。
 
 ---
 
-## Context Engineering 核心问题
+## 反模式与陷阱
 
-文章最后提出的思考框架（高划线段落）：
+- **MCP upfront 加载陷阱**：启用 MCP 服务器后，每次 session 开始都支付 13.7k-18k token 的 schema 加载成本，无论这些工具是否被用。→ 正确做法：评估工具被调用的频率；低频工具用 CLI bash 调用，不挂 MCP。
 
-> **你的 agent 的 context window 里，有多少 token 是花在了真正重要的事情上——**
-> **用户的代码、用户的指令、项目的上下文？**
-> **又有多少 token 是花在了模型早就知道的东西上？**
+- **子 Agent 黑箱陷阱**：在主 agent 内部自动派生子 agent → 主 session 无法观测子 agent 的文件操作和 bash 调用。→ 正确做法：子 agent 只通过 bash 显式调用；子 agent 的 working directory 记录在日志里。
 
-如果 900 token 的 system prompt 能让一个 agent 在 benchmark 上提交成绩、在真实工作中表现良好，
-那些额外的 9000 token 到底买到了什么？
+- **Token 追踪精度假设陷阱**：不同 provider 对同一请求报告的 token 数有差异（Cerebras/xAI 拒绝某些字段），best-effort 计费在多 provider 环境下可能严重失真。→ 正确做法：用 provider 原始 token 计数，不做跨 provider 归一化。
 
----
-
-## 对 mini_symphony.py 的启示
-
-参考 `python/mini_symphony.py`，pi 的设计决策对我们的编排器有以下直接影响：
-
-| pi 决策 | mini_symphony 对应做法 |
-|--------|----------------------|
-| PLAN.md 替代 Plan Mode | TASKS.md 作为任务队列，文件即状态 |
-| bash 是万能工具 | agent 通过 bash 调外部工具，不内置 MCP |
-| AGENTS.md（全局+项目） | WORKFLOW.md 同时承担配置和 prompt |
-| 无后台进程，用 tmux | before_run hook 可以启动 tmux session |
-| pi --print 非交互模式 | `command: "pi --print"` 作为子进程执行 |
+- **全文件 `write` 覆盖 vs `edit` 精准修改**：`write` 会丢失文件中未包含在 content 参数里的内容（并发写入时数据丢失）。→ 正确做法：只对新文件或完整重写用 `write`；修改现有文件必须用 `edit`（需要精确的 oldText）。
 
 ---
 
-## pi 架构四包（供参考）
+## 与现有知识库的连接
 
-```
-pi-coding-agent
-├── pi-ai       统一 LLM API（Anthropic/OpenAI/Google/xAI/Groq/Cerebras/OpenRouter）
-├── pi-agent-core  Agent 循环：工具执行、结果回传、重复直到不再调用工具
-├── pi-tui      自研终端 UI：差分渲染 + 同步输出，接近零闪烁
-└── pi-coding-agent  最终 CLI 产品
-```
-
-设计哲学：**"if I don't need it, it won't be built."**
+- 关联 `python/mini_symphony.py`：mini_symphony 的 system prompt 可以用 pi 的极简原则重写；同时 mini_symphony 的 `max_rounds=20` 是粗糙的步骤上限，可以补充超时检测（类 Symphony stall detection）
+- 关联 `python/tape_context.py`：pi 的"跨 provider 上下文切换"（thinking trace → `<thinking>` 标签）是一个具体的上下文转换需求，tape_context 的锚点机制可以扩展支持这类跨 provider 格式转换
+- 关联 `python/sandbox_execute.py`：pi 的"安全边界 = 执行环境而非 prompt 限制"与 sandbox_execute.py 的设计理念完全一致；sandbox_execute 的 stdout-only 隔离可以作为 mini_symphony 任务隔离的基础
 
 ---
 
-## 相关资源
+## 衍生项目想法
 
-- pi 开源仓库：github.com/badlogic/pi-mono
-- Mario 的 MCP 分析文章：mariozechner.at/posts/2025-11-02-what-if-you-dont-need-mcp/
-- Claude Code System Prompt 历史：cchistory.mariozechner.at
-- Terminal-Bench 2.0：github.com/laude-institute/terminal-bench
-- CLI 工具集：github.com/badlogic/agent-tools
+### mini_symphony system prompt 极简化实验
+
+**来源组合**：[pi: 260-token system prompt 效果等于 10,000-token] + [mini_symphony: WORKFLOW.md system prompt]
+**为什么有意思**：mini_symphony 的 system prompt 包含大量解释性内容，pi 证明这些内容的边际价值接近零；削减 system prompt 可以降低每次任务的 token 成本，同时可能改善模型遵循率（更少的噪音）
+**最小 spike**：把 WORKFLOW.md 的 system prompt 压缩到 10 行以内，运行 3 个相同任务对比输出质量和 token 消耗
+**潜在难点**：需要建立评估标准——如何衡量"输出质量"？用任务完成率还是人工评分？
+
+### pi 差分渲染移植到 mini_symphony 的进度显示
+
+**来源组合**：[pi: 差分渲染（只重绘变化行）+ 同步输出] + [mini_symphony: 目前用 print() 线性输出]
+**为什么有意思**：mini_symphony 在长任务中的实时进度显示是纯 print，看不到当前状态全貌；差分渲染可以做一个"实时任务看板"——每个任务一行，状态实时更新，不滚动
+**最小 spike**：用 `rich.Live` 实现固定高度的任务状态面板，替换 mini_symphony 的 print 输出
+**潜在难点**：mini_symphony 是 subprocess 调用子进程，子进程的输出需要被捕获并路由到 Live 面板
