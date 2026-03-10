@@ -49,6 +49,11 @@
 | 🔵 reference | `analysis/simon-willison-wasm-browser-tool-pattern.md` | Deep-read: WASM Browser Tool Pattern (GIF Optimization) — CLI→WASM→zero-backend HTML, agent Emscripten brute-force, Rodney self-test close-loop | — |
 | 🔵 reference | `analysis/rust-mapreduce-architecture.md` | Deep-read: Rust MapReduce single-machine impl — Master/Worker FSM, K-way merge, speculative execution, 7 honest deviation statements | — |
 | 🔵 reference | `ideas/wasm-cli-tool-wrapper-factory.md` | WASM CLI Tool Wrapper Factory — any C/C++ CLI tool → drag-drop zero-backend HTML tool via agent Emscripten brute-force | — |
+| 🔵 reference | `analysis/karpathy-autoresearch.md` | Deep-read: karpathy/autoresearch — git-ratchet autonomous ML experimentation, program.md as two-level optimization, NEVER STOP design, 4 non-obvious insights + implication chains | — |
+| 🔵 reference | `analysis/design-plugin-claude-code.md` | Deep-read: 0xdesign/design-plugin — visual style inference from codebase, FeedbackOverlay CSS selector mechanism, DESIGN_MEMORY accumulation pattern, 4 non-obvious insights | — |
+| 🔵 reference | `analysis/karpathy-nanochat.md` | Deep-read: karpathy/nanochat — single-dial GPT training ($48 GPT-2), x0 residual, Muon+AdamW param grouping, explicit COMPUTE_DTYPE, SSSL window, softcap logits, parallel data download | — |
+| 🔵 reference | `analysis/ruff-python-linter.md` | Ruff linter/formatter reference: migration strategy (--add-noqa), RUF100 debt tracking, B006/B023 bug-catching rules, CI exit code gotcha, monorepo config inheritance | — |
+| 🟡 template | `templates/ruff.toml.template` | Production ruff config: E/F/B/I/UP/RUF rules, per-file-ignores, formatter settings, migration & CI commands | — |
 
 **Type legend**: 🟢 code — run or import directly · 🟡 template — copy and customize · 🔵 reference — read when making design decisions
 
@@ -135,6 +140,11 @@ Each snippet is a standalone file. The header comment block describes:
 | 🔵 参考 | `analysis/simon-willison-wasm-browser-tool-pattern.md` | 精读：WASM 浏览器工具模式（GIF 优化）——CLI→WASM→零后端 HTML、Agent Emscripten 暴力编译、Rodney 自测闭环 | — |
 | 🔵 参考 | `analysis/rust-mapreduce-architecture.md` | 精读：Rust MapReduce 单机实现——Master/Worker FSM、K-way 归并、推测执行、7条诚实偏差声明 | — |
 | 🔵 参考 | `ideas/wasm-cli-tool-wrapper-factory.md` | WASM CLI 工具封装工厂——任意 C/C++ CLI 工具→拖放式零后端 HTML 工具，Agent 暴力 Emscripten 编译 | — |
+| 🔵 参考 | `analysis/karpathy-autoresearch.md` | karpathy/autoresearch 精读：Git 棘轮自主 ML 实验、program.md 两级优化解耦、NEVER STOP 设计、4条非显见洞见+蕴含链 | — |
+| 🔵 参考 | `analysis/design-plugin-claude-code.md` | design-plugin 精读：从代码库推断视觉语言、FeedbackOverlay CSS selector 坐标系、DESIGN_MEMORY 跨会话积累、4条非显见洞见+蕴含链 | — |
+| 🔵 参考 | `analysis/karpathy-nanochat.md` | nanochat 精读：单拨盘 GPT 训练（$48 GPT-2）、x0 残差、Muon+AdamW 参数分组、显式 COMPUTE_DTYPE、SSSL 滑窗、softcap 逻辑值、并行数据下载 | — |
+| 🔵 参考 | `analysis/ruff-python-linter.md` | Ruff linter/formatter 精读：--add-noqa 迁移策略、RUF100 技术债追踪、B006/B023 真正捉虫的规则、CI 退出码陷阱、monorepo 配置继承 | — |
+| 🟡 模板 | `templates/ruff.toml.template` | 生产级 ruff 配置：E/F/B/I/UP/RUF 规则、per-file-ignores、formatter 设置、迁移命令和 CI 命令 | — |
 
 **类型说明**: 🟢 代码——可直接运行或导入 · 🟡 模板——复制后按需修改 · 🔵 参考——做设计决策时查阅
 

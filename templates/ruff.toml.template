@@ -1,0 +1,98 @@
+# =============================================================================
+# Ruff linter + formatter configuration template
+# Source: https://github.com/astral-sh/ruff
+# Usage:  Copy to project root as `ruff.toml`, customize as needed
+# Docs:   https://docs.astral.sh/ruff/configuration/
+# Date:   2026-03-09
+# =============================================================================
+
+# --- Global settings (apply to both linter and formatter) ---
+
+line-length = 88                   # Match Black default; formatter enforces this
+indent-width = 4
+target-version = "py310"           # Or omit: auto-inferred from requires-python
+
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".mypy_cache",
+    ".ruff_cache",
+]
+
+# --- Linter settings ---
+
+[lint]
+select = [
+    "E4",   # pycodestyle: indentation + imports (severe)
+    "E7",   # pycodestyle: statement errors (severe)
+    "E9",   # pycodestyle: runtime errors
+    "F",    # Pyflakes: unused imports/vars, undefined names, syntax errors
+    "B",    # flake8-bugbear: real bugs (mutable defaults, loop closures, etc.)
+    "I",    # isort: import sorting
+    "UP",   # pyupgrade: modernize Python 3 syntax
+    "RUF",  # Ruff-native: unused noqa (RUF100), Python gotchas
+    # "N",  # pep8-naming: class/function/variable naming conventions
+    # "S",  # flake8-bandit: security issues (eval, pickle, shell=True)
+    # "PL", # Pylint: deeper logic errors (slower, more false positives)
+]
+
+ignore = [
+    "E501",     # Line length — handled by formatter, don't double-check in linter
+    # "UP007",  # Use X | Y for union types (if supporting Python 3.9 and older)
+]
+
+fixable = ["ALL"]
+
+unfixable = [
+    "F401",     # Don't auto-remove unused imports — may be intentional re-exports
+]
+
+# Bug-catching rules to be aware of (included in "B" above):
+#   B006: mutable default argument          def foo(x=[]):
+#   B023: loop variable not bound to fn     [lambda: i for i in range(3)]
+#   B031: groupby() iterator used twice     exhausted iterator silently returns nothing
+#   F601: duplicate key in dict literal     {"a": 1, "a": 2} → silent data loss
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]           # Re-exports are intentional
+"tests/**/*.py" = [
+    "S101",                         # Allow assert in tests
+    "B011",                         # Allow assert False in tests
+]
+"scripts/**/*.py" = [
+    "S603", "S607",                 # Allow subprocess calls in scripts
+]
+# "*.ipynb" = ["E402", "T20"]      # Notebooks: out-of-order imports, print() OK
+
+# --- Formatter settings ---
+
+[format]
+quote-style = "double"             # Match Black
+indent-style = "space"
+skip-magic-trailing-comma = false  # Respect trailing commas as formatting signals
+line-ending = "auto"               # Detect from file; use "lf" to force Unix
+docstring-code-format = true       # Format code blocks inside docstrings
+
+# --- Common usage ---
+#
+# Check:            ruff check .
+# Fix (safe):       ruff check . --fix
+# Fix (all):        ruff check . --fix --unsafe-fixes
+# Format:           ruff format .
+# Format check CI:  ruff format . --check
+#
+# Migrate existing codebase (step 1 - add suppression comments):
+#   ruff check . --add-noqa
+#
+# Clean up stale noqa after migration (step 2):
+#   ruff check . --extend-select RUF100 --fix
+#
+# See violation statistics (for migration planning):
+#   ruff check . --statistics
+#
+# CI recommended pattern (check only, no auto-fix):
+#   ruff check . && ruff format . --check
