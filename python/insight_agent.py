@@ -13,7 +13,7 @@
   python insight_agent.py "https://example.com/article" "关注其中的缓存设计"
 
 mini_symphony WORKFLOW.md 中的 agent command:
-  python3 /root/projects/CodeSnippets/python/insight_agent.py
+  python3 ~/Projects/CodeSnippets/python/insight_agent.py
 """
 
 import json
@@ -29,7 +29,7 @@ import anthropic
 # 配置
 # ─────────────────────────────────────────────
 
-CODESNIPPETS_ROOT = Path("/root/projects/CodeSnippets")
+CODESNIPPETS_ROOT = Path.home() / "Projects" / "CodeSnippets"
 CONVENTIONS_PATH = CODESNIPPETS_ROOT / "references" / "project-conventions.md"
 MODEL = "claude-sonnet-4-6"
 MAX_TOKENS = 16384
@@ -342,7 +342,7 @@ def run_agent(url: str, description: str = "") -> bool:
 
 def main():
     # mini_symphony 调用方式：
-    #   command: "python3 /root/projects/CodeSnippets/python/insight_agent.py"
+    #   command: "python3 ~/Projects/CodeSnippets/python/insight_agent.py"
     #   prompt 通过 .symphony_prompt.txt 传入，格式如下：
     #     URL: https://...
     #     备注: ...（可选）

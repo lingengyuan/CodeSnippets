@@ -4,6 +4,9 @@
 > 日期: 2026-03-05
 > 语言: Go
 > 标签: TUI, 缓存策略, 搜索, API 配额管理
+> **状态**: ❌ 已饱和（2026-03-28 验证）
+
+> **验证结论**：3+ 成熟的 YouTube TUI 浏览器已存在且活跃维护：youtube-tui（Rust, Vim keybindings, 本地缓存）、yt-x（fzf, 频道深入, 缩略图预览）、ytui（Python, OAuth, fuzzy finder）。本文档中的 Fetch-Cache-Search 架构模式仍有参考价值。
 
 ---
 

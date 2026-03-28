@@ -158,7 +158,7 @@
 
 ## READING_LIST.md 同步规则
 
-归档完成后，更新 `/root/projects/CodeSnippets/READING_LIST.md`：
+归档完成后，更新 `~/Projects/CodeSnippets/READING_LIST.md`：
 - 若来源 URL 在"待归档"有 `- [ ]` 条目 → 改为 `- [x]`
 - 若 URL 不在列表 → 在"已归档"末尾追加 `- [x] {url}`
 

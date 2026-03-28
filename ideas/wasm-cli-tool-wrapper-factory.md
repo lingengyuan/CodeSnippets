@@ -2,7 +2,9 @@
 
 **来源**: https://simonwillison.net/guides/agentic-engineering-patterns/gif-optimization/
 **日期**: 2026-03-13
-**状态**: 💡灵感
+**状态**: ⚠️ 缝隙（2026-03-28 验证）
+
+> **验证结论**：Simon Willison 的 `simonw/tools` 已有 150+ 单页 HTML 工具，且发表了 "Useful patterns for building HTML tools"（2025.12）。自动化"一键封装"工厂不存在，但每个工具的 Emscripten 配置各不相同，难以真正通用化——更像 recipe 而非 product。
 
 ---
 

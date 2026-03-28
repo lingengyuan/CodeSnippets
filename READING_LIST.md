@@ -4,7 +4,7 @@
 
 **运行方式**：
 ```bash
-cd /root/projects/CodeSnippets
+cd ~/Projects/CodeSnippets
 python3 python/mini_symphony.py -w WORKFLOW.md --once      # 处理一轮
 python3 python/mini_symphony.py -w WORKFLOW.md             # 持续监听
 python3 python/mini_symphony.py -w WORKFLOW.md --dry-run   # 预览 prompt

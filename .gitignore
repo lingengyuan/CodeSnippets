@@ -1,0 +1,11 @@
+# Runtime / System
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+node_modules/
+.DS_Store
+
+# Local config (per-machine)
+.claude/

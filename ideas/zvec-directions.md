@@ -1,13 +1,17 @@
 # 基于 zvec 的项目方向
 
 **日期**: 2026-03-01
-**状态**: 💡灵感
+**状态**: ❌ 大部分已饱和（2026-03-28 验证）
 
 zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合检索**、**生产级 ANN（Proxima）**。以下方向都围绕这三个特性展开。
+
+> **2026-03-28 实时验证结论**：6 个方向中 4 个已有成熟竞品，2 个有小缝隙但价值有限。详见各方向标注和下方更新后的优先级表。
 
 ---
 
 ## 方向一：本地语义 grep — `sgrep`
+
+> ❌ **已饱和**：XiaoConstantine/sgrep (Go, ColBERT)、lgrep-cli (Python, pip install)、Oceanir/sgrep (Rust)、Pimzino/sgrep (JS/npm)、arunsupe/semantic-grep (Go, word2vec) — 5+ 实现覆盖 Go/Rust/Python/JS 全生态。
 
 **一句话**：`grep` 的语义升级版，CLI 工具，零服务依赖。
 
@@ -25,6 +29,8 @@ zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合
 
 ## 方向二：Embedding Cache Layer
 
+> ❌ **已饱和**：GPTCache (开源)、Redis Stack 语义缓存、AWS ElastiCache+Bedrock、Azure API Management、Sealos AI Proxy、Bifrost — 行业标准方案，40-80% 成本节省已被多方验证。
+
 **一句话**：用 zvec 做 LLM embedding 调用的近似缓存，省钱省时间。
 
 **思路**：
@@ -40,6 +46,8 @@ zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合
 ---
 
 ## 方向三：单脚本 RAG — `rag.py`
+
+> ❌ **已饱和**：FAISS + sentence-transformers 单文件 RAG 是标准教程模式（TowardsDataScience "Local RAG From Scratch"、DZone、MLJourney 等），无数 repo 和博文已覆盖。
 
 **一句话**：一个 Python 文件实现完整 RAG pipeline，不需要任何外部服务。
 
@@ -57,6 +65,8 @@ zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合
 
 ## 方向四：测试用 Mock 向量库
 
+> ⚠️ **缝隙**：没有 `pytest-faiss` 或 `pytest-zvec` 这样的真实 ANN fixture 插件。但需求面窄，大多数人直接 `unittest.mock` / `pytest-mock` 就够用。
+
 **一句话**：给 RAG / Agent 项目写单测时，用 zvec 替代真实向量数据库。
 
 **思路**：
@@ -73,6 +83,8 @@ zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合
 
 ## 方向五：边缘设备离线知识库
 
+> ⚠️ **缝隙**：边缘 + 离线 + in-process ANN 的组合确实少见。但需要硬件验证（树莓派/工控机），更像应用场景而非工具/库。
+
 **一句话**：树莓派/工控机上跑的离线问答系统，不联网。
 
 **思路**：
@@ -86,6 +98,8 @@ zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合
 
 ## 方向六：个人知识图谱 + 语义日记
 
+> ❌ **已饱和**：Obsidian Smart Connections 插件（语义搜索 vault）、mem.ai、Reflect 等 "第二大脑" 工具已覆盖。
+
 **一句话**：把日记/笔记/书签全部向量化，用自然语言回溯自己的想法。
 
 **思路**：
@@ -98,13 +112,13 @@ zvec 的核心差异点：**in-process**（像 SQLite）、**dense+sparse 混合
 
 ---
 
-## 优先级建议
+## 优先级建议（2026-03-28 更新）
 
-| 方向 | 难度 | 实用性 | 独特性 | 建议 |
-|------|------|--------|--------|------|
-| 语义 grep | 中 | ⭐⭐⭐⭐⭐ | 高 | **最先做** — 市场空白，刚需 |
-| Embedding Cache | 低 | ⭐⭐⭐⭐ | 高 | 第二个 — 实现简单，效果直接 |
-| 单脚本 RAG | 低 | ⭐⭐⭐⭐ | 中 | 可以和语义 grep 合并 |
-| Mock 向量库 | 低 | ⭐⭐⭐ | 中 | 写测试时顺手做 |
-| 边缘离线 | 高 | ⭐⭐⭐ | 高 | 需要硬件，但场景独特 |
-| 语义日记 | 中 | ⭐⭐⭐⭐ | 中 | 个人项目，随时可做 |
+| 方向 | 难度 | 验证状态 | 竞品 | 结论 |
+|------|------|---------|------|------|
+| 语义 grep | 中 | ❌ 已饱和 | sgrep(Go), lgrep-cli(pip), Oceanir/sgrep(Rust) 等 5+ | 不做 |
+| Embedding Cache | 低 | ❌ 已饱和 | GPTCache, Redis Stack, AWS/Azure 原生支持 | 不做 |
+| 单脚本 RAG | 低 | ❌ 已饱和 | FAISS+ST 教程遍地 | 不做 |
+| Mock 向量库 | 低 | ⚠️ 缝隙 | 无直接竞品，但 pytest-mock 覆盖 90% 需求 | 低优先 |
+| 边缘离线 | 高 | ⚠️ 缝隙 | 无直接竞品，需硬件 | 低优先 |
+| 语义日记 | 中 | ❌ 已饱和 | Obsidian Smart Connections, mem.ai | 不做 |
