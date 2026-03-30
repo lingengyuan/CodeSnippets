@@ -169,18 +169,13 @@ VibeVoice-TTS 团队**故意不对训练数据去噪**，因为模型自发学�
 
 ## 衍生项目想法
 
-### 想法 1：语音→知识库自动摄入管线
+### 想法 1：语音→知识库自动摄入管线 ⚠️ 降级：工具链集成，非新方向
 
 **来源组合**：[VibeVoice-ASR 的 Who+When+What 结构化输出] × [已有 KB 中的 DocFlow RAG 管线]
-**为什么有意思**：会议录音 → VibeVoice-ASR 结构化转录 → DocFlow 自动 chunk+embed+索引。把"非结构化的口语对话"变成"可检索的知识条目"。当前 DocFlow 只处理 PDF，加入语音输入相当于扩大了知识源。
-**最小 spike**：用 VibeVoice4macOS 在 M4 上跑一段会议录音，确认结构化输出格式，然后写一个 adapter 把 segments JSON 转成 DocFlow 的 chunk 格式。
-**潜在难点**：7B 模型在 Mac 上推理速度可能慢于实时；口语的信噪比低于书面文本。
-
-**验证状态**：
-- 原始项目：✅ VibeVoice-ASR 的 Who+When+What 输出天然适合结构化摄入，但项目本身没有做 RAG 集成
-- GitHub：⚠️ 找到 VibeVoice4macOS（Mac 部署）但没有 VibeVoice→RAG 的集成项目
-- 社区：⚠️ voice-ai-pipeline 等项目做了 ASR→LLM 管线，但没有 ASR→RAG 知识库方向
-- 增量价值：把"会议→结构化转录→可检索知识"的完整管线做通，当前社区没有现成方案
+**原始思路**：会议录音 → VibeVoice-ASR 结构化转录 → DocFlow 自动 chunk+embed+索引。
+**降级原因**：本质上只是 `ASR（音频→文本）→ 标准文本 RAG`，不需要"语音 RAG"新范式。ASR 转录完成后，后续就是标准的 text chunking → embedding → retrieval，与 DocFlow 现有管线完全一致。唯一增量是 ASR 输出带说话人/时间戳元数据可作为 metadata filter，但这只是多两个过滤维度，不构成架构创新。
+**实际定位**：一个 adapter 脚本（ASR JSON → DocFlow chunk 格式），工作量约半天。真正的瓶颈在 ASR 推理速度（7B 模型在 Mac 上可能慢于实时），不在 RAG 端。
+**结论**：如果需要语音输入 RAG，直接用任何 ASR 工具转文本即可，不需要专门构建管线。
 
 ### 想法 2：Hotword 注入模式跨域应用
 
