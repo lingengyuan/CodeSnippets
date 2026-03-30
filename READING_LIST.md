@@ -58,3 +58,5 @@ python3 python/insight_agent.py <url> [备注]               # 直接归档单�
       Git 棘轮自主 ML 实验框架：program.md 两级优化、NEVER STOP、固定时间预算实验比较
 - [x] https://github.com/chenglou/pretext
       纯 JS 多行文本布局：prepare/layout 两阶段分离、Canvas measureText 绕过 DOM 重排、多文字系统精度门控
+- [x] https://github.com/microsoft/VibeVoice
+      微软语音 AI 全家桶：7.5Hz tokenizer 3200× 压缩、next-token diffusion、ASR（60min 单次）/TTS（90min 多说话人）/Realtime（200ms 首音）
