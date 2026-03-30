@@ -13,7 +13,7 @@
 - **17 runnable code snippets** — Python, Rust, TypeScript, HTML/JS tools, ready to import or execute
 - **26 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
 - **10 idea documents** — project directions with real-time market verification status
-- **4 reusable templates** — orchestrator configs, prompt templates, linter presets
+- **5 reusable templates** — orchestrator configs, prompt templates, linter presets, agent doc architecture
 
 ### Catalog
 
@@ -47,6 +47,7 @@
 | `templates/TASKS.md.example` | Task queue file example for mini_symphony.py — markdown checklist format | — |
 | `templates/ruff.toml.template` | Production ruff config: E/F/B/I/UP/RUF rules, per-file-ignores, formatter settings, migration & CI commands | — |
 | `snippets/interactive-explanation-prompt.md` | Interactive Explanation prompt template — generates visual HTML animation for hard-to-intuit algorithms | — |
+| `templates/agents-md-template.md` | 5-layer agent doc architecture template (README→DEVELOPMENT→STATUS→RESEARCH→AGENTS), extracted from chenglou/pretext | — |
 
 #### 🔵 Reference — read when making design decisions
 
@@ -146,7 +147,7 @@ Each snippet is a standalone file. The header comment block describes:
 - **17 个可运行代码片段** — Python、Rust、TypeScript、HTML/JS 工具，可直接导入或执行
 - **26 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
 - **10 个灵感文档** — 项目方向，含实时市场验证状态
-- **4 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设
+- **5 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设、Agent 文档架构
 
 ### 目录
 
@@ -180,6 +181,7 @@ Each snippet is a standalone file. The header comment block describes:
 | `templates/TASKS.md.example` | mini_symphony.py 的任务队列文件示例——Markdown checklist 格式 | — |
 | `templates/ruff.toml.template` | 生产级 ruff 配置：E/F/B/I/UP/RUF 规则、per-file-ignores、formatter 设置 | — |
 | `snippets/interactive-explanation-prompt.md` | 交互式解释 Prompt 模板——为难以直觉理解的算法生成可视化 HTML 动画 | — |
+| `templates/agents-md-template.md` | 5 层 Agent 文档架构模板（README→DEVELOPMENT→STATUS→RESEARCH→AGENTS），从 chenglou/pretext 提炼 | — |
 
 #### 🔵 参考——做设计决策时查阅
 
