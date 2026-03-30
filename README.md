@@ -11,7 +11,7 @@
 ### Features
 
 - **17 runnable code snippets** — Python, Rust, TypeScript, HTML/JS tools, ready to import or execute
-- **25 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
+- **26 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
 - **10 idea documents** — project directions with real-time market verification status
 - **4 reusable templates** — orchestrator configs, prompt templates, linter presets
 
@@ -79,6 +79,7 @@
 | `analysis/idea-combinations.md` | Cross-idea combination analysis: 5 idea pairs priority-ranked from existing KB entries |
 | `analysis/directions-synthesis.md` | Global direction synthesis v1: consolidated priorities from all ideas and analyses |
 | `analysis/directions-synthesis-v2.md` | Global direction synthesis v2: updated with pi-context, symphony, yt-browse, MapReduce inputs |
+| `analysis/chenglou-pretext-text-layout.md` | Pretext: pure JS multiline text measurement & layout — two-phase prepare/layout, canvas-based, multi-script |
 
 **Ideas and directions (ideas/)**
 
@@ -143,7 +144,7 @@ Each snippet is a standalone file. The header comment block describes:
 ### 功能特性
 
 - **17 个可运行代码片段** — Python、Rust、TypeScript、HTML/JS 工具，可直接导入或执行
-- **25 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
+- **26 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
 - **10 个灵感文档** — 项目方向，含实时市场验证状态
 - **4 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设
 
@@ -211,6 +212,7 @@ Each snippet is a standalone file. The header comment block describes:
 | `analysis/idea-combinations.md` | 现有素材交叉组合分析：5 组想法配对、优先级排序 |
 | `analysis/directions-synthesis.md` | 全局方向综合分析 v1：从所有想法和精读中提炼统一优先级 |
 | `analysis/directions-synthesis-v2.md` | 全局方向综合分析 v2：新增 pi-context、symphony、yt-browse、MapReduce 后更新 |
+| `analysis/chenglou-pretext-text-layout.md` | Pretext 精读：纯 JS 多行文本测量布局——prepare/layout 两阶段、Canvas 代理测量、多文字系统 |
 
 **灵感与方向 (ideas/)**
 

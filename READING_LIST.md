@@ -56,3 +56,5 @@ python3 python/insight_agent.py <url> [备注]               # 直接归档单�
       Claude Code UI 设计插件：样式推断、FeedbackOverlay、DESIGN_MEMORY 积累、5轴变体生成
 - [x] https://github.com/karpathy/autoresearch
       Git 棘轮自主 ML 实验框架：program.md 两级优化、NEVER STOP、固定时间预算实验比较
+- [x] https://github.com/chenglou/pretext
+      纯 JS 多行文本布局：prepare/layout 两阶段分离、Canvas measureText 绕过 DOM 重排、多文字系统精度门控
