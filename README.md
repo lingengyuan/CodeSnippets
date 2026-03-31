@@ -12,7 +12,7 @@
 
 - **17 runnable code snippets** — Python, Rust, TypeScript, HTML/JS tools, ready to import or execute
 - **28 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
-- **10 idea documents** — project directions with real-time market verification status
+- **11 idea documents** — project directions with real-time market verification status
 - **5 reusable templates** — orchestrator configs, prompt templates, linter presets, agent doc architecture
 
 ### Catalog
@@ -98,6 +98,7 @@
 | `ideas/zvec-directions.md` | 6 zvec project directions (hybrid search, RAG, edge KB, etc.) | ❌ 大部分已饱和 |
 | `ideas/quantized-vector-store-mlx.md` | MLX quantized vector store: million-scale local vector search | ❌ 已饱和 |
 | `ideas/sdk-agent-mini-symphony-integration.md` | SDK Agent as mini_symphony executor (Claude SDK + task queue) | ❌ 已被取代 |
+| `ideas/progress-as-code-manifest.md` | Progress-as-Code: self-scanning project dashboard, auto-generate README catalog from file system | 💡 |
 
 ### Project Structure
 
@@ -148,7 +149,7 @@ Each snippet is a standalone file. The header comment block describes:
 
 - **17 个可运行代码片段** — Python、Rust、TypeScript、HTML/JS 工具，可直接导入或执行
 - **28 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
-- **10 个灵感文档** — 项目方向，含实时市场验证状态
+- **11 个灵感文档** — 项目方向，含实时市场验证状态
 - **5 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设、Agent 文档架构
 
 ### 目录
@@ -234,6 +235,7 @@ Each snippet is a standalone file. The header comment block describes:
 | `ideas/zvec-directions.md` | 6 个 zvec 项目方向（混合检索、RAG、边缘 KB 等） | ❌ 大部分已饱和 |
 | `ideas/quantized-vector-store-mlx.md` | MLX 量化向量存储：百万级本地向量搜索 | ❌ 已饱和 |
 | `ideas/sdk-agent-mini-symphony-integration.md` | SDK Agent 作为 mini_symphony 执行器 | ❌ 已被取代 |
+| `ideas/progress-as-code-manifest.md` | Progress-as-Code：自扫描式项目仪表盘，从文件系统自动生成 README 目录表 | 💡 |
 
 ### 项目结构
 
