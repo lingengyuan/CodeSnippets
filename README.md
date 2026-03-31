@@ -11,7 +11,7 @@
 ### Features
 
 - **17 runnable code snippets** — Python, Rust, TypeScript, HTML/JS tools, ready to import or execute
-- **27 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
+- **28 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
 - **10 idea documents** — project directions with real-time market verification status
 - **5 reusable templates** — orchestrator configs, prompt templates, linter presets, agent doc architecture
 
@@ -82,6 +82,7 @@
 | `analysis/directions-synthesis-v2.md` | Global direction synthesis v2: updated with pi-context, symphony, yt-browse, MapReduce inputs |
 | `analysis/chenglou-pretext-text-layout.md` | Pretext: pure JS multiline text measurement & layout — two-phase prepare/layout, canvas-based, multi-script |
 | `analysis/microsoft-vibevoice-voice-ai.md` | VibeVoice: Microsoft's open-source Voice AI family — 7.5Hz tokenizer (3200× compression), next-token diffusion, ASR/TTS/Realtime |
+| `analysis/claude-code-ai-reimplementation-ethics.md` | AI reimplementation & copyleft erosion: "legal ≠ legitimate" direction vector, chardet case, specification copyleft, ethical porting |
 
 **Ideas and directions (ideas/)**
 
@@ -146,7 +147,7 @@ Each snippet is a standalone file. The header comment block describes:
 ### 功能特性
 
 - **17 个可运行代码片段** — Python、Rust、TypeScript、HTML/JS 工具，可直接导入或执行
-- **27 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
+- **28 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
 - **10 个灵感文档** — 项目方向，含实时市场验证状态
 - **5 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设、Agent 文档架构
 
@@ -217,6 +218,7 @@ Each snippet is a standalone file. The header comment block describes:
 | `analysis/directions-synthesis-v2.md` | 全局方向综合分析 v2：新增 pi-context、symphony、yt-browse、MapReduce 后更新 |
 | `analysis/chenglou-pretext-text-layout.md` | Pretext 精读：纯 JS 多行文本测量布局——prepare/layout 两阶段、Canvas 代理测量、多文字系统 |
 | `analysis/microsoft-vibevoice-voice-ai.md` | VibeVoice 精读：微软开源语音 AI 全家桶——7.5Hz tokenizer（3200× 压缩）、next-token diffusion、ASR/TTS/Realtime |
+| `analysis/claude-code-ai-reimplementation-ethics.md` | AI 重实现与 copyleft 侵蚀精读：合法≠正当方向向量、chardet 案例、规格 copyleft、伦理 porting |
 
 **灵感与方向 (ideas/)**
 

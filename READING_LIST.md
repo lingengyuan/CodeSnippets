@@ -60,3 +60,5 @@ python3 python/insight_agent.py <url> [备注]               # 直接归档单�
       纯 JS 多行文本布局：prepare/layout 两阶段分离、Canvas measureText 绕过 DOM 重排、多文字系统精度门控
 - [x] https://github.com/microsoft/VibeVoice
       微软语音 AI 全家桶：7.5Hz tokenizer 3200× 压缩、next-token diffusion、ASR（60min 单次）/TTS（90min 多说话人）/Realtime（200ms 首音）
+- [x] https://github.com/lingengyuan/claude-code
+      AI 重实现与 copyleft 侵蚀：合法≠正当方向向量、chardet LGPL→MIT 案例、规格 copyleft、伦理 porting workspace
