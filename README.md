@@ -11,7 +11,7 @@
 ### Features
 
 - **17 runnable code snippets** — Python, Rust, TypeScript, HTML/JS tools, ready to import or execute
-- **28 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
+- **29 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
 - **11 idea documents** — project directions with real-time market verification status
 - **5 reusable templates** — orchestrator configs, prompt templates, linter presets, agent doc architecture
 
@@ -83,6 +83,7 @@
 | `analysis/chenglou-pretext-text-layout.md` | Pretext: pure JS multiline text measurement & layout — two-phase prepare/layout, canvas-based, multi-script |
 | `analysis/microsoft-vibevoice-voice-ai.md` | VibeVoice: Microsoft's open-source Voice AI family — 7.5Hz tokenizer (3200× compression), next-token diffusion, ASR/TTS/Realtime |
 | `analysis/claude-code-ai-reimplementation-ethics.md` | AI reimplementation & copyleft erosion: "legal ≠ legitimate" direction vector, chardet case, specification copyleft, ethical porting |
+| `analysis/claude-code-architecture-patterns.md` | Claude Code architecture: 10 transferable patterns from 512K LOC — buildTool() factory, async generator loop, 5-phase startup, 3-layer permissions, Worker isolation |
 
 **Ideas and directions (ideas/)**
 
@@ -148,7 +149,7 @@ Each snippet is a standalone file. The header comment block describes:
 ### 功能特性
 
 - **17 个可运行代码片段** — Python、Rust、TypeScript、HTML/JS 工具，可直接导入或执行
-- **28 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
+- **29 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
 - **11 个灵感文档** — 项目方向，含实时市场验证状态
 - **5 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设、Agent 文档架构
 
@@ -220,6 +221,7 @@ Each snippet is a standalone file. The header comment block describes:
 | `analysis/chenglou-pretext-text-layout.md` | Pretext 精读：纯 JS 多行文本测量布局——prepare/layout 两阶段、Canvas 代理测量、多文字系统 |
 | `analysis/microsoft-vibevoice-voice-ai.md` | VibeVoice 精读：微软开源语音 AI 全家桶——7.5Hz tokenizer（3200× 压缩）、next-token diffusion、ASR/TTS/Realtime |
 | `analysis/claude-code-ai-reimplementation-ethics.md` | AI 重实现与 copyleft 侵蚀精读：合法≠正当方向向量、chardet 案例、规格 copyleft、伦理 porting |
+| `analysis/claude-code-architecture-patterns.md` | Claude Code 架构精读：512K LOC 中提取的 10 个可迁移模式——buildTool() 工厂、async generator 循环、5 阶段启动、三层权限、Worker 隔离 |
 
 **灵感与方向 (ideas/)**
 
