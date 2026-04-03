@@ -62,3 +62,5 @@ python3 python/insight_agent.py <url> [备注]               # 直接归档单�
       微软语音 AI 全家桶：7.5Hz tokenizer 3200× 压缩、next-token diffusion、ASR（60min 单次）/TTS（90min 多说话人）/Realtime（200ms 首音）
 - [x] https://github.com/lingengyuan/claude-code
       AI 重实现与 copyleft 侵蚀：合法≠正当方向向量、chardet LGPL→MIT 案例、规格 copyleft、伦理 porting workspace
+- [x] https://github.com/HKUDS/nanobot
+      极简 Agent 架构精读：1200 LOC 核心 vs 512K LOC Claude Code——Runner/Loop 解耦、降级记忆、渐进式 Skill 加载
