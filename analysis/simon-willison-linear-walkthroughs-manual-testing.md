@@ -453,6 +453,8 @@ exec 记录命令+输出
 
 - 关联 `analysis/simon-willison-red-green-tdd.md`：Manual Testing 是 TDD 的互补（而非替代）——TDD 证明代码逻辑正确，Manual Testing（含浏览器自动化）证明用户体验正确。两者都可以用 Showboat 记录，形成完整的质量证明链。
 
+- 关联 `analysis/simon-willison-interactive-explanations.md`：认知债务三级体系中的第二级——交互式解释。本文的 Linear Walkthrough 是第一级（线性导读），Interactive Explanation 是第二级（可操作动画），两者构成从"被动理解"到"主动探索"的递进路径
+
 ---
 
 ## 衍生项目想法

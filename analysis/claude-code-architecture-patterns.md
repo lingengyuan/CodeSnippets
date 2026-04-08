@@ -245,6 +245,9 @@ Worker 可以调用所有工具（bash、edit、read），但 `setAppState` 被�
 - 关联 `analysis/context-mode-mcp-context-saving.md`：Context Mode 的 98% 压缩 vs Claude Code 的 Compact 服务——两种 context 压缩策略的对比（输出沙箱 vs 摘要+骨架保留）
 - 关联 `ideas/progress-as-code-manifest.md`：Claude Code 的 buildTool() 注册模式可以启发 manifest 脚本的"声明式文件描述"设计
 - 关联 `analysis/claude-code-ai-reimplementation-ethics.md`：本分析只提取架构模式（ideas, not expression），与前篇伦理分析的"规格级知识 > 实现级代码"结论一致
+- 关联 `analysis/claude-agent-sdk-demos.md`：SDK Demos 展示了 Claude Code 架构模式的外部 API 形态——AgentDefinition 模式、工具路由、spawn CLI 进程。是本文"buildTool() 工厂"和"Worker 隔离"模式在 SDK 层的投影
+- 关联 `analysis/design-plugin-claude-code.md`：design-plugin 是 Claude Code 插件生态的实例——展示了本文"Observable Store"和"Hook 系统"模式如何被第三方消费。CSS selector 坐标系 + DESIGN_MEMORY 积累是一种领域特化的工具注册
+- 关联 `analysis/hkuds-nanobot-minimalist-agent.md`：nanobot 的 7 个核心组件 vs 本文的 10 个可迁移模式——证明了 Agent 核心抽象只需 ~1200 LOC，其余 99% 是产品化开销
 
 ---
 

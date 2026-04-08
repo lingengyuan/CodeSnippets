@@ -227,6 +227,7 @@ nanobot 的爆发增长不是因为技术最先进，而是因为：(1) 代码�
 - **关联 `python/mini_symphony.py`**：mini_symphony 约 500 LOC，nanobot core 约 1200 LOC。mini_symphony 缺少的：Memory system、Skill loader、Hook lifecycle、concurrent tool execution。可以借鉴 nanobot 的 AgentRunner 提取模式
 - **关联 `python/session_tracker.py`**：session_tracker 的 FTS5 restore vs nanobot 的 HISTORY.md grep search——两种会话恢复策略的对比。nanobot 更简单（文件 grep），session_tracker 更精确（SQL query）
 - **关联 `analysis/pi-context-engineering.md`**：pi 的 7 个 context engineering 决策 vs nanobot 的 ContextBuilder——都在解决"如何在有限 context 中塞入最大信息"
+- **关联 `analysis/karpathy-llm-wiki-pattern.md`**：nanobot 的两层记忆（MEMORY.md + HISTORY.md）是 Karpathy wiki 模式在 agent 内部的微缩版——MEMORY.md = 编译型 wiki（LLM 合并维护），HISTORY.md = append-only log。`_fail_or_raw_archive` 降级 = 一种极端的 lint 策略（宁可有噪声也不丢数据）
 
 ---
 

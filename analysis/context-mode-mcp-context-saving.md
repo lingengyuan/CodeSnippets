@@ -242,6 +242,7 @@ Context 接近满了 → 自动压缩触发
 - 关联 `python/tape_context.py`：Tape 的"锚点（Anchor）+ 按需装配"思想与 Context Mode 的"Session Event + FTS5 检索恢复"是同一心智模型的不同实现层级——前者是 Python 库级别的轻量实现，后者是 SQLite 持久化 + 跨进程 hook 的生产级实现。两者共同验证了"不靠历史继承，靠结构化事件 + 检索重建"这一上下文管理范式。
 - 关联 `python/fts5_fuzzy_search.py`：Context Mode 的三层模糊搜索（Porter→Trigram→Levenshtein）与知识库中的 FTS5 三层搜索实现完全同构，是同一设计在不同项目中的独立验证，且 Context Mode 增加了 BM25 ranking 层。
 - 关联 `analysis/pi-context-engineering.md`：pi agent 的 7 个 context engineering 决策与 Context Mode 互补——pi 侧重于 system prompt 设计和工具定义压缩，Context Mode 侧重于工具输出压缩和跨 compaction 状态持久化。
+- 关联 `analysis/simon-willison-llm-026-tools.md`：LLM 0.26 的工具调用机制和 MCP 路线图与 Context Mode 的 MCP 输出沙箱直接相关——LLM CLI 是工具定义层，Context Mode 是工具输出压缩层，两者在 MCP 生态中互补
 - 关联 `python/mini_symphony.py`：mini_symphony 的 per-task workspace 隔离与 Context Mode 的子进程隔离沙箱有相似的隔离哲学——任务状态不应污染全局上下文。
 
 ---
