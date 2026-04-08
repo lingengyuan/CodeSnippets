@@ -38,11 +38,22 @@ hooks:
     echo "after run"
     # git -C $WORKSPACE_PATH diff --stat || true
 
+  # after_complete: 任务成功后运行（Compound Step 经验捕获）
+  # stdout → 写入 WORKFLOW.md 的 Lessons Learned 部分
+  # 环境变量: $TASK_TITLE, $TASK_ID, $AGENT_OUTPUT, $WORKSPACE_PATH
+  # 如果不定义，使用 agent 输出末尾作为自动摘要
+  # after_complete: |
+  #   echo "- **关键学习**: $(echo "$AGENT_OUTPUT" | tail -3)"
+
 tasks:
   source: "./TASKS.md"    # 任务列表文件路径
 
 polling:
   interval: 30            # 轮询间隔（秒），--once 时忽略
+
+compound:
+  enabled: true           # 启用 Compound Step（任务成功后自动记录经验）
+  max_lessons: 10         # prompt 中注入的最近经验条数（0 = 不注入）
 ---
 
 你是一个 coding agent，请独立完成以下任务。
@@ -58,6 +69,12 @@ polling:
 ---
 **注意**: 这是第 {{ attempt }} 次重试。
 请先检查 workspace 中已有的工作，在此基础上继续，不要重头开始。
+{% endif %}
+{% if lessons %}
+
+---
+**历史经验**（来自已完成任务的 Compound Step，请参考避免重复错误）:
+{{ lessons }}
 {% endif %}
 
 ---

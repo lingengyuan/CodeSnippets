@@ -14,6 +14,10 @@ tasks:
 polling:
   interval: 60
 
+compound:
+  enabled: true
+  max_lessons: 10
+
 hooks:
   after_run: |
     # 归档完成后同步 README（可选）
@@ -28,6 +32,12 @@ hooks:
 {% endif %}
 {% if attempt %}
 这是第 {{ attempt }} 次重试，请重新尝试。
+{% endif %}
+{% if lessons %}
+---
+**历史经验**（来自已完成任务的 Compound Step，请参考避免重复错误）:
+{{ lessons }}
+---
 {% endif %}
 
 **操作步骤**：

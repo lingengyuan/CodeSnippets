@@ -9,7 +9,8 @@ mini_symphony.py — 轻量 Agent 编排器
   - WORKFLOW.md 解析（YAML front matter + Liquid 风格 prompt 模板）
   - TASKS.md 任务源（Markdown checklist 格式）
   - Workspace 隔离（per-task 目录，安全路径校验）
-  - 生命周期钩子（after_create / before_run / after_run）
+  - 生命周期钩子（after_create / before_run / after_run / after_complete）
+  - Compound Step（任务成功后自动捕获经验，复利循环）
   - 两种重试策略（continuation 固定 1s；failure 指数退避上限 5min）
   - Stall 检测（turn_timeout 超时自动 kill）
 
@@ -25,6 +26,7 @@ mini_symphony.py — 轻量 Agent 编排器
 来源参考：
   - https://github.com/openai/symphony (SPEC.md)
   - analysis/symphony-orchestration-spec.md
+  - analysis/simon-willison-better-code-compound-engineering.md
 """
 
 import argparse
@@ -35,6 +37,7 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Optional
 
@@ -77,15 +80,20 @@ DEFAULT_CONFIG = {
         "root": "~/.mini-symphony/workspaces",
     },
     "hooks": {
-        # after_create: 首次创建 workspace 时执行（克隆代码、安装依赖等）
-        # before_run:   每次 attempt 前执行（git pull、清理等），失败则中止本次
-        # after_run:    每次 attempt 后执行（收集结果等），失败仅记录
+        # after_create:   首次创建 workspace 时执行（克隆代码、安装依赖等）
+        # before_run:     每次 attempt 前执行（git pull、清理等），失败则中止本次
+        # after_run:      每次 attempt 后执行（收集结果等），失败仅记录
+        # after_complete: 任务成功后执行，stdout 作为经验内容写入 Lessons Learned
     },
     "tasks": {
         "source": "./TASKS.md",
     },
     "polling": {
         "interval": 30,  # 轮询间隔（秒）
+    },
+    "compound": {
+        "enabled": True,     # 启用 Compound Step（任务成功后自动记录经验）
+        "max_lessons": 10,   # prompt 中注入的最近经验条数
     },
 }
 
@@ -99,9 +107,19 @@ DEFAULT_PROMPT = """\
 {% if attempt %}
 这是第 {{ attempt }} 次重试，请先检查 workspace 中已有工作再继续。
 {% endif %}
+{% if lessons %}
+---
+**历史经验**（来自已完成任务的 Compound Step）:
+{{ lessons }}
+---
+{% endif %}
 
 完成后请提交相关改动，并确认任务已完成。
 """
+
+
+# Compound Step 数据分隔符——WORKFLOW.md 中此标记之后的内容为经验记录
+LESSONS_MARKER = "<!-- lessons -->"
 
 
 # ─────────────────────────────────────────────
@@ -146,6 +164,11 @@ def parse_workflow(path: str) -> tuple[dict, str]:
 
     config = deep_merge(DEFAULT_CONFIG, user_config)
     prompt_template = prompt_template.strip() or DEFAULT_PROMPT
+
+    # Strip lessons section (compound step data) from prompt template
+    if LESSONS_MARKER in prompt_template:
+        prompt_template = prompt_template[:prompt_template.index(LESSONS_MARKER)].strip()
+
     return config, prompt_template
 
 
@@ -264,6 +287,123 @@ def mark_task_done(tasks_path: str, task: Task):
         lines[task.line_index] = re.sub(r"\[ \]", "[x]", lines[task.line_index], count=1)
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
         logging.info(f"[{task.id}] 标记完成 ✓")
+
+
+# ─────────────────────────────────────────────
+# Compound Step（Compound Engineering 复利循环）
+#
+# 灵感来源：Simon Willison "AI should help us produce better code"
+# 模式：任务完成 → 捕获经验 → 写入 WORKFLOW.md → 下次任务自动受益
+# ─────────────────────────────────────────────
+
+def parse_lessons(workflow_path: str, max_count: int = 10) -> str:
+    """
+    从 WORKFLOW.md 的 <!-- lessons --> 部分读取历史经验。
+
+    返回最近 max_count 条经验的格式化文本，供 {{ lessons }} 模板变量注入。
+    """
+    try:
+        text = Path(workflow_path).read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError):
+        return ""
+    if LESSONS_MARKER not in text:
+        return ""
+    lessons_section = text[text.index(LESSONS_MARKER) + len(LESSONS_MARKER):].strip()
+    if not lessons_section:
+        return ""
+    # 按 ### 标题分割，跳过 ## 大标题行，取最近 max_count 条
+    entries = re.split(r"(?=^### )", lessons_section, flags=re.MULTILINE)
+    entries = [e.strip() for e in entries if e.strip() and not e.strip().startswith("## ")]
+    if len(entries) > max_count:
+        entries = entries[-max_count:]
+    return "\n\n".join(entries)
+
+
+def append_lesson(workflow_path: str, task: Task, content: str):
+    """向 WORKFLOW.md 的 Lessons Learned 部分追加一条经验记录。"""
+    try:
+        text = Path(workflow_path).read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError) as e:
+        logging.warning(f"[compound] 无法读取 {workflow_path}: {e}")
+        return
+
+    today = date.today().isoformat()
+    entry = f"\n### {task.title} ({today})\n{content}\n"
+
+    if LESSONS_MARKER in text:
+        text += entry
+    else:
+        text = text.rstrip() + f"\n\n{LESSONS_MARKER}\n## Lessons Learned\n{entry}"
+
+    try:
+        Path(workflow_path).write_text(text, encoding="utf-8")
+        logging.info(f"[{task.id}] compound step: 经验已记录 ✓")
+    except OSError as e:
+        logging.warning(f"[compound] 写入失败: {e}")
+
+
+def _auto_lesson(task: Task, agent_output: str) -> str:
+    """从 agent 输出末尾自动生成经验摘要。"""
+    if agent_output and agent_output.strip():
+        tail = agent_output.strip()[-500:]
+        # 取最后几行作为摘要（通常是 agent 的总结）
+        tail_lines = tail.splitlines()[-5:]
+        summary = "\n".join(f"  {line}" for line in tail_lines)
+        return f"- **结果**: 成功\n- **输出摘要**:\n{summary}"
+    return "- **结果**: 成功\n- **输出摘要**: (无输出)"
+
+
+def run_compound_step(
+    task: Task,
+    workspace: Path,
+    config: dict,
+    agent_output: str,
+    workflow_path: str,
+):
+    """
+    Compound Engineering 复利步骤：任务成功后捕获经验并写入 WORKFLOW.md。
+
+    若定义了 after_complete hook，其 stdout 作为经验内容；
+    否则自动从 agent 输出末尾提取摘要。
+
+    环境变量注入：
+      WORKSPACE_PATH  当前 workspace 路径
+      TASK_TITLE      任务标题
+      TASK_ID         任务 ID
+      AGENT_OUTPUT    agent 输出（截断到 4000 字符）
+    """
+    hooks = config.get("hooks", {})
+    after_complete_script = hooks.get("after_complete")
+    lesson_content = None
+
+    if after_complete_script:
+        env = {
+            **os.environ,
+            "WORKSPACE_PATH": str(workspace),
+            "TASK_TITLE": task.title,
+            "TASK_ID": task.id,
+            "AGENT_OUTPUT": agent_output[:4000] if agent_output else "",
+        }
+        timeout = config.get("hooks", {}).get("timeout", 60)
+        try:
+            result = subprocess.run(
+                after_complete_script,
+                shell=True, executable="/bin/bash",
+                cwd=workspace, env=env,
+                capture_output=True, text=True,
+                timeout=timeout,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                lesson_content = result.stdout.strip()
+            else:
+                logging.debug("[after_complete] 无输出或失败，使用自动摘要")
+        except subprocess.TimeoutExpired:
+            logging.warning(f"[after_complete] 超时（{timeout}s），使用自动摘要")
+
+    if not lesson_content:
+        lesson_content = _auto_lesson(task, agent_output)
+
+    append_lesson(workflow_path, task, lesson_content)
 
 
 # ─────────────────────────────────────────────
@@ -410,14 +550,16 @@ def process_task(
     config: dict,
     prompt_template: str,
     dry_run: bool = False,
+    workflow_path: Optional[str] = None,
 ) -> bool:
     """
-    处理单个任务，含完整重试逻辑。
+    处理单个任务，含完整重试逻辑和 Compound Step。
     返回 True=任务完成。
     """
     hooks = config.get("hooks", {})
     max_retries = config.get("agent", {}).get("max_retries", 3)
     tasks_source = config.get("tasks", {}).get("source", "./TASKS.md")
+    compound_cfg = config.get("compound", {})
 
     # 准备 workspace
     try:
@@ -433,6 +575,12 @@ def process_task(
         if not ok:
             logging.error(f"[{task.id}] after_create 失败，跳过任务")
             return False
+
+    # 加载历史经验供 prompt 注入
+    lessons = ""
+    if workflow_path and compound_cfg.get("enabled", True):
+        max_lessons = compound_cfg.get("max_lessons", 10)
+        lessons = parse_lessons(workflow_path, max_count=max_lessons)
 
     # 重试循环
     for attempt in range(max_retries):
@@ -451,6 +599,7 @@ def process_task(
         template_vars = {
             "task": {"title": task.title, "description": task.description},
             "attempt": attempt if attempt > 0 else None,
+            "lessons": lessons,
         }
         prompt = render_template(prompt_template, template_vars)
 
@@ -464,6 +613,11 @@ def process_task(
             logging.info(f"[{task.id}] 成功完成 ✓")
             if not dry_run:
                 mark_task_done(tasks_source, task)
+                # Compound Step：捕获经验并写入 WORKFLOW.md
+                if workflow_path and compound_cfg.get("enabled", True):
+                    run_compound_step(
+                        task, workspace, config, output, workflow_path,
+                    )
             return True
 
         # 失败处理
@@ -509,7 +663,10 @@ def orchestrate(workflow_path: str, once: bool = False, dry_run: bool = False):
         else:
             logging.info(f"发现 {len(tasks)} 个待处理任务")
             for task in tasks:
-                process_task(task, config, prompt_template, dry_run=dry_run)
+                process_task(
+                    task, config, prompt_template,
+                    dry_run=dry_run, workflow_path=workflow_path,
+                )
 
         if once:
             logging.info("--once 模式，退出")
