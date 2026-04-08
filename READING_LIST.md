@@ -64,3 +64,5 @@ python3 python/insight_agent.py <url> [备注]               # 直接归档单�
       AI 重实现与 copyleft 侵蚀：合法≠正当方向向量、chardet LGPL→MIT 案例、规格 copyleft、伦理 porting workspace
 - [x] https://github.com/HKUDS/nanobot
       极简 Agent 架构精读：1200 LOC 核心 vs 512K LOC Claude Code——Runner/Loop 解耦、降级记忆、渐进式 Skill 加载
+- [x] https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
+      Karpathy LLM Wiki 模式：编译型 wiki vs RAG、三层架构、Lint 操作——CodeSnippets 即是此模式的实例
