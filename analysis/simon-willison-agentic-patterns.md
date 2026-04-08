@@ -254,3 +254,38 @@ Simon 的硬性原则：表达观点或用"我"的文本必须是他亲自写的
 - [Animated Word Cloud Demo](https://tools.simonwillison.net/animated-word-cloud) — 交互式算法解释示例
 - [GIF Optimizer Tool](https://tools.simonwillison.net/gif-optimizer) — Gifsicle WASM 工具示例
 - 相关已有文件：[ideas/agentic-hoarding-patterns.md](../ideas/agentic-hoarding-patterns.md)
+
+---
+
+## 系列子页精读索引
+
+本概览对应 Simon Willison [Agentic Engineering Patterns](https://simonwillison.net/guides/agentic-engineering-patterns/) 系列全部 13 个子页。以下是每个子页的精读状态和对应文档：
+
+### Principles（原则）
+| # | 子页 | 精读文档 | 状态 |
+|---|------|---------|------|
+| 1.1 | What is agentic engineering? | — | ✅ 已读，定义/入门内容，KB 已充分覆盖 |
+| 1.2 | Hoard things you know how to do | [simon-willison-hoard-things.md](simon-willison-hoard-things.md) | ✅ |
+| 1.3 | Writing code is cheap now | [simon-willison-code-is-cheap.md](simon-willison-code-is-cheap.md) | ✅ |
+| 1.4 | AI should help us produce better code | [simon-willison-better-code-compound-engineering.md](simon-willison-better-code-compound-engineering.md) | ✅ 新增 |
+| 1.5 | Anti-patterns | [simon-willison-anti-patterns.md](simon-willison-anti-patterns.md) | ✅ |
+
+### Working with Coding Agents（实操）
+| # | 子页 | 精读文档 | 状态 |
+|---|------|---------|------|
+| 2.1 | How coding agents work | — | ✅ 已读，机制教程，KB 已充分覆盖 |
+| 2.2 | Using Git with coding agents | [simon-willison-agents-git-subagents.md](simon-willison-agents-git-subagents.md) Part 1 | ✅ 新增 |
+| 2.3 | Subagents | [simon-willison-agents-git-subagents.md](simon-willison-agents-git-subagents.md) Part 2 | ✅ 新增 |
+| 2.4 | Red/Green TDD | [simon-willison-red-green-tdd.md](simon-willison-red-green-tdd.md) | ✅ |
+| 2.5 | First, run the tests | [simon-willison-first-run-tests.md](simon-willison-first-run-tests.md) | ✅ |
+| 2.6 | Agentic manual testing | [simon-willison-linear-walkthroughs-manual-testing.md](simon-willison-linear-walkthroughs-manual-testing.md) | ✅ |
+| 2.7 | Linear walkthroughs | [simon-willison-linear-walkthroughs-manual-testing.md](simon-willison-linear-walkthroughs-manual-testing.md) | ✅ |
+
+### Other（其他）
+| # | 子页 | 精读文档 | 状态 |
+|---|------|---------|------|
+| 3.1 | Interactive explanations | [simon-willison-interactive-explanations.md](simon-willison-interactive-explanations.md) | ✅ |
+| 3.2 | GIF optimization / WASM | [simon-willison-wasm-browser-tool-pattern.md](simon-willison-wasm-browser-tool-pattern.md) | ✅ |
+| 3.3 | Prompts | — | ✅ 已读，Appendix 类，prompt 模板持续更新 |
+
+**覆盖率：13/13 子页已全部阅读，10 篇独立精读 + 3 页标记为"已读/KB 已覆盖"。**

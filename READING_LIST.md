@@ -66,3 +66,13 @@ python3 python/insight_agent.py <url> [备注]               # 直接归档单�
       极简 Agent 架构精读：1200 LOC 核心 vs 512K LOC Claude Code——Runner/Loop 解耦、降级记忆、渐进式 Skill 加载
 - [x] https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f
       Karpathy LLM Wiki 模式：编译型 wiki vs RAG、三层架构、Lint 操作——CodeSnippets 即是此模式的实例
+- [x] https://simonwillison.net/guides/agentic-engineering-patterns/better-code/
+      Compound Engineering 复利工程：零容忍代码异味、异步 Agent 重构、探索性原型成本趋零、compound step 沉淀循环
+- [x] https://simonwillison.net/guides/agentic-engineering-patterns/git/
+      Agent Git 工作流：git log 启动法、bisect 日常化、history rewriting 常规化、library extraction 保留历史
+- [x] https://simonwillison.net/guides/agentic-engineering-patterns/subagents/
+      子 Agent 模式：Explore 搜索专家、Parallel 并行执行器、Specialist 角色（reviewer/tester/debugger）、context 压缩比
+- [x] https://simonwillison.net/guides/agentic-engineering-patterns/what-is-agentic-engineering/
+      定义与入门：Agent = "tools in a loop"、code execution 是定义性能力——已有 KB 充分覆盖，未单独成篇
+- [x] https://simonwillison.net/guides/agentic-engineering-patterns/how-coding-agents-work/
+      Agent 工作机制教程：tokens、caching、tool calling、system prompt、reasoning——已有 KB 充分覆盖，未单独成篇

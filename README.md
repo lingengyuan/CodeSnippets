@@ -11,7 +11,7 @@
 ### Features
 
 - **17 runnable code snippets** — Python, Rust, TypeScript, HTML/JS tools, ready to import or execute
-- **31 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
+- **33 deep-read analyses** — distilled insights from expert articles, open-source projects, and papers
 - **11 idea documents** — project directions with real-time market verification status
 - **5 reusable templates** — orchestrator configs, prompt templates, linter presets, agent doc architecture
 
@@ -65,6 +65,8 @@
 | `analysis/simon-willison-linear-walkthroughs-manual-testing.md` | Linear Walkthroughs + Agentic Manual Testing + Showboat — cognitive debt 3-tier system |
 | `analysis/simon-willison-wasm-browser-tool-pattern.md` | WASM Browser Tool Pattern (GIF Optimization) — CLI→WASM→zero-backend HTML, agent Emscripten brute-force |
 | `analysis/simon-willison-llm-026-tools.md` | LLM 0.26 tool-use release: CLI flags, plugin system, Python API, ReAct loop, MCP roadmap |
+| `analysis/simon-willison-better-code-compound-engineering.md` | "Better Code" + Compound Engineering — zero-tolerance code smells, async agent refactoring, exploratory prototyping, compound step loop |
+| `analysis/simon-willison-agents-git-subagents.md` | Git Workflow + Subagents — "look at last commits" seeding, bisect automation, specialist sub-agents, context compression |
 | `analysis/symphony-orchestration-spec.md` | OpenAI Symphony SPEC: orchestration FSM, workspace isolation, app-server protocol |
 | `analysis/pi-context-engineering.md` | pi coding agent: 7 context engineering decisions + verbatim system prompt + tool defs |
 | `analysis/context-mode-mcp-context-saving.md` | Context Mode: MCP output sandbox (315 KB → 5.4 KB, 98% reduction), session continuity via SQLite+FTS5 |
@@ -151,7 +153,7 @@ Each snippet is a standalone file. The header comment block describes:
 ### 功能特性
 
 - **17 个可运行代码片段** — Python、Rust、TypeScript、HTML/JS 工具，可直接导入或执行
-- **31 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
+- **33 篇深度精读** — 从专家文章、开源项目、论文中萃取的核心洞见
 - **11 个灵感文档** — 项目方向，含实时市场验证状态
 - **5 个可复用模板** — 编排器配置、Prompt 模板、Linter 预设、Agent 文档架构
 
@@ -205,6 +207,8 @@ Each snippet is a standalone file. The header comment block describes:
 | `analysis/simon-willison-linear-walkthroughs-manual-testing.md` | 精读：线性导读 + Agent 手动测试 + Showboat——认知债务三级体系、防作弊设计 |
 | `analysis/simon-willison-wasm-browser-tool-pattern.md` | 精读：WASM 浏览器工具模式——CLI→WASM→零后端 HTML、Emscripten 暴力编译 |
 | `analysis/simon-willison-llm-026-tools.md` | LLM 0.26 工具调用发布精读：CLI、插件、Python API、ReAct 循环、MCP 路线图 |
+| `analysis/simon-willison-better-code-compound-engineering.md` | 精读："Better Code" + Compound Engineering——零容忍代码异味、异步 Agent 重构、探索性原型、复利循环 |
+| `analysis/simon-willison-agents-git-subagents.md` | 精读：Git 工作流 + 子 Agent 模式——git log 启动法、bisect 自动化、Specialist 子 Agent、context 压缩 |
 | `analysis/symphony-orchestration-spec.md` | OpenAI Symphony SPEC 精读：编排状态机、Workspace 隔离、App-Server 协议 |
 | `analysis/pi-context-engineering.md` | pi coding agent 精读：7 个 Context Engineering 决策 + system prompt + 工具定义 |
 | `analysis/context-mode-mcp-context-saving.md` | Context Mode 精读：MCP 输出沙箱（98%压缩）、SQLite+FTS5 会话持续性 |
